@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '@/components/ui/Card';
@@ -19,21 +19,47 @@ const phases: Phase[] = ['pra-hamil', 'hamil', 'pasca-melahirkan'];
 export default function PhaseSelectScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { mode, profileId } = useLocalSearchParams<{ mode?: string; profileId?: string }>();
+
+  const isChangePhaseMode = mode === 'change-phase';
 
   const handlePhaseSelect = (phase: Phase) => {
-    router.push({
-      pathname: '/onboarding/profile-setup',
-      params: { phase },
-    });
+    if (isChangePhaseMode) {
+      router.push({
+        pathname: '/onboarding/profile-setup',
+        params: { phase, mode: 'change-phase', profileId: profileId ?? '' },
+      });
+    } else {
+      router.push({
+        pathname: '/onboarding/profile-setup',
+        params: { phase },
+      });
+    }
+  };
+
+  const handleBack = () => {
+    router.back();
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.stepLabel}>Langkah 1 dari 2</Text>
-        <Text style={styles.title}>Pilih Tahap Anda</Text>
+        {isChangePhaseMode && (
+          <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        )}
+        <Text style={styles.stepLabel}>
+          {isChangePhaseMode ? 'Ganti Fase' : 'Langkah 1 dari 2'}
+        </Text>
+        <Text style={styles.title}>
+          {isChangePhaseMode ? 'Pilih Fase Baru' : 'Pilih Tahap Anda'}
+        </Text>
         <Text style={styles.subtitle}>
-          Pilih tahap yang sesuai dengan kondisi Anda saat ini
+          {isChangePhaseMode
+            ? 'Pilih fase yang sesuai dengan kondisi Anda saat ini. Data fase sebelumnya akan diperbarui.'
+            : 'Pilih tahap yang sesuai dengan kondisi Anda saat ini'}
         </Text>
       </View>
 
@@ -115,6 +141,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingTop: Spacing.xxxl,
     paddingBottom: Spacing.lg,
+  },
+  backButton: {
+    marginBottom: Spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stepLabel: {
     fontSize: FontSize.sm,

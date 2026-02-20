@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { AppSettings, UserProfile, Phase } from '@/types';
-import { getSettings, saveSettings, getProfiles, saveProfiles } from '@/utils/storage';
+import { getSettings, saveSettings, getProfiles, saveProfiles, clearAllData } from '@/utils/storage';
 
 interface AppContextType {
   // State
@@ -19,6 +19,7 @@ interface AppContextType {
   setActiveProfile: (id: string) => Promise<void>;
   completeOnboarding: () => Promise<void>;
   refreshData: () => Promise<void>;
+  resetApp: () => Promise<void>;
 }
 
 const defaultSettings: AppSettings = {
@@ -112,6 +113,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await loadData();
   }, []);
 
+  const resetApp = useCallback(async () => {
+    await clearAllData();
+    setSettings(defaultSettings);
+    setProfiles([]);
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -126,6 +133,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setActiveProfile,
         completeOnboarding,
         refreshData,
+        resetApp,
       }}
     >
       {children}

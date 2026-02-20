@@ -18,7 +18,6 @@ import { Colors, Spacing, FontSize, FontWeight, BorderRadius, phaseConfig } from
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Phase, UserProfile } from '@/types';
-import { clearAllData } from '@/utils/storage';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -28,10 +27,10 @@ export default function ProfileScreen() {
     profiles,
     settings,
     updateSettings,
-    updateProfile,
     deleteProfile,
     setActiveProfile,
     addProfile,
+    resetApp,
   } = useApp();
 
   const [showPinModal, setShowPinModal] = useState(false);
@@ -142,32 +141,49 @@ export default function ProfileScreen() {
   };
 
   const handleChangePhase = () => {
-    const phases: Phase[] = ['pra-hamil', 'hamil', 'pasca-melahirkan'];
-    const options = phases.map((p) => ({
-      text: phaseConfig[p].label,
-      onPress: () => updateProfile(activeProfile.id, { phase: p }),
-    }));
-    Alert.alert('Ubah Fase', 'Pilih fase baru:', [
-      ...options,
-      { text: 'Batal', style: 'cancel' },
-    ]);
+    router.push({
+      pathname: '/onboarding/phase-select',
+      params: { mode: 'change-phase', profileId: activeProfile.id },
+    });
   };
 
   const handleResetData = () => {
     Alert.alert(
-      'Reset Semua Data',
-      'Apakah Anda yakin ingin menghapus SEMUA data? Tindakan ini tidak dapat dibatalkan.',
+      'Reset Data Aplikasi',
+      'Tindakan ini akan menghapus SEMUA data kesehatan, profil, dan pengaturan Anda. Anda akan diarahkan kembali ke halaman awal untuk memulai ulang.\n\nTindakan ini tidak dapat dibatalkan.',
       [
         { text: 'Batal', style: 'cancel' },
         {
-          text: 'Reset',
+          text: 'Ya, Hapus Semua',
           style: 'destructive',
           onPress: async () => {
             try {
-              await clearAllData();
+              await resetApp();
               router.replace('/onboarding');
             } catch {
-              Alert.alert('Error', 'Gagal mereset data');
+              Alert.alert('Error', 'Gagal mereset data. Silakan coba lagi.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRestartOnboarding = () => {
+    Alert.alert(
+      'Mulai Ulang Profil',
+      'Ini akan menghapus semua data kesehatan dan profil Anda saat ini, lalu membawa Anda kembali ke halaman pengaturan awal untuk memilih fase dan mengisi data profil baru.\n\nLanjutkan?',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Ya, Mulai Ulang',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await resetApp();
+              router.replace('/onboarding');
+            } catch {
+              Alert.alert('Error', 'Gagal mereset data. Silakan coba lagi.');
             }
           },
         },
@@ -311,11 +327,34 @@ export default function ProfileScreen() {
             value="Data tersimpan lokal"
             showChevron={false}
           />
-          <View style={styles.divider} />
+        </Card>
+
+        {/* Restart / Reset Section */}
+        <Text style={styles.sectionTitle}>Onboarding & Reset</Text>
+
+        {/* Mulai Ulang Profil - prominent card */}
+        <TouchableOpacity
+          style={styles.restartCard}
+          onPress={handleRestartOnboarding}
+          activeOpacity={0.8}
+        >
+          <View style={styles.restartIconWrap}>
+            <Ionicons name="refresh-circle-outline" size={32} color={Colors.primary} />
+          </View>
+          <View style={styles.restartTextWrap}>
+            <Text style={styles.restartTitle}>Mulai Ulang Profil</Text>
+            <Text style={styles.restartDesc}>
+              Kembali ke halaman awal untuk memilih fase dan mengisi data profil baru
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+        </TouchableOpacity>
+
+        <Card style={[styles.settingsCard, { marginTop: Spacing.sm }]}>
           <SettingsItem
             icon="trash-outline"
             label="Reset Semua Data"
-            value=""
+            value="Hapus semua data & mulai dari awal"
             onPress={handleResetData}
             danger
           />
@@ -619,6 +658,38 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.borderLight,
     marginHorizontal: Spacing.lg,
+  },
+  restartCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.primaryLight,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  restartIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restartTextWrap: {
+    flex: 1,
+  },
+  restartTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.primaryDark,
+    marginBottom: 2,
+  },
+  restartDesc: {
+    fontSize: FontSize.xs,
+    color: Colors.primary,
+    lineHeight: 16,
   },
   appInfo: {
     alignItems: 'center',

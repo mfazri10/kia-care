@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -43,27 +43,63 @@ function formatDate(date: Date): string {
 export default function ProfileSetupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { phase } = useLocalSearchParams<{ phase: Phase }>();
-  const { addProfile, completeOnboarding } = useApp();
+  const { phase, mode, profileId } = useLocalSearchParams<{
+    phase: Phase;
+    mode?: string;
+    profileId?: string;
+  }>();
+  const { addProfile, completeOnboarding, updateProfile, profiles } = useApp();
 
+  const isChangePhaseMode = mode === 'change-phase';
   const currentPhase: Phase = phase || 'hamil';
   const config = phaseConfig[currentPhase];
 
-  // Basic profile fields
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
-  const [weight, setWeight] = useState('');
-  const [height, setHeight] = useState('');
+  // Find existing profile if in change-phase mode
+  const existingProfile = isChangePhaseMode
+    ? profiles.find((p) => p.id === profileId) ?? null
+    : null;
+
+  // Basic profile fields — pre-fill from existing profile in change-phase mode
+  const [name, setName] = useState(existingProfile?.name ?? '');
+  const [age, setAge] = useState(existingProfile?.age ? String(existingProfile.age) : '');
+  const [weight, setWeight] = useState(
+    existingProfile?.weight ? String(existingProfile.weight) : ''
+  );
+  const [height, setHeight] = useState(
+    existingProfile?.height ? String(existingProfile.height) : ''
+  );
 
   // Phase-specific fields
-  const [hpht, setHpht] = useState<Date | null>(null);
+  const [hpht, setHpht] = useState<Date | null>(
+    existingProfile?.hpht ? new Date(existingProfile.hpht) : null
+  );
   const [showHphtPicker, setShowHphtPicker] = useState(false);
-  const [babyDob, setBabyDob] = useState<Date | null>(null);
+  const [babyDob, setBabyDob] = useState<Date | null>(
+    existingProfile?.babyDob ? new Date(existingProfile.babyDob) : null
+  );
   const [showBabyDobPicker, setShowBabyDobPicker] = useState(false);
-  const [babyName, setBabyName] = useState('');
-  const [babyGender, setBabyGender] = useState<BabyGender | null>(null);
+  const [babyName, setBabyName] = useState(existingProfile?.babyName ?? '');
+  const [babyGender, setBabyGender] = useState<BabyGender | null>(
+    (existingProfile?.babyGender as BabyGender) ?? null
+  );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Re-populate when existing profile loads (in case context wasn't ready yet)
+  useEffect(() => {
+    if (existingProfile && isChangePhaseMode) {
+      setName(existingProfile.name);
+      setAge(existingProfile.age ? String(existingProfile.age) : '');
+      setWeight(existingProfile.weight ? String(existingProfile.weight) : '');
+      setHeight(existingProfile.height ? String(existingProfile.height) : '');
+      if (existingProfile.hpht) setHpht(new Date(existingProfile.hpht));
+      if (existingProfile.babyDob) setBabyDob(new Date(existingProfile.babyDob));
+      if (existingProfile.babyName) setBabyName(existingProfile.babyName);
+      if (existingProfile.babyGender) setBabyGender(existingProfile.babyGender as BabyGender);
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validateForm = useCallback((): string | null => {
     if (!name.trim()) {
@@ -114,38 +150,72 @@ export default function ProfileSetupScreen() {
     setIsSubmitting(true);
 
     try {
-      const now = new Date().toISOString();
-      const profile: UserProfile = {
-        id: generateId(),
-        name: name.trim(),
-        phase: currentPhase,
-        age: parseInt(age, 10),
-        weight: parseFloat(weight),
-        height: parseFloat(height),
-        createdAt: now,
-        updatedAt: now,
-      };
+      if (isChangePhaseMode && existingProfile) {
+        // Update the existing profile with new phase + data
+        const updates: Partial<UserProfile> = {
+          name: name.trim(),
+          phase: currentPhase,
+          age: parseInt(age, 10),
+          weight: parseFloat(weight),
+          height: parseFloat(height),
+          // Clear phase-specific fields first
+          hpht: undefined,
+          babyDob: undefined,
+          babyName: undefined,
+          babyGender: undefined,
+        };
 
-      if (currentPhase === 'hamil' && hpht) {
-        profile.hpht = hpht.toISOString();
+        if (currentPhase === 'hamil' && hpht) {
+          updates.hpht = hpht.toISOString();
+        }
+        if (currentPhase === 'pasca-melahirkan') {
+          if (babyDob) updates.babyDob = babyDob.toISOString();
+          if (babyName.trim()) updates.babyName = babyName.trim();
+          if (babyGender) updates.babyGender = babyGender;
+        }
+
+        await updateProfile(existingProfile.id, updates);
+
+        Alert.alert(
+          'Fase Berhasil Diubah',
+          `Profil Anda telah diperbarui ke fase ${config.label}.`,
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+        );
+      } else {
+        // Create new profile (normal onboarding flow)
+        const now = new Date().toISOString();
+        const profile: UserProfile = {
+          id: generateId(),
+          name: name.trim(),
+          phase: currentPhase,
+          age: parseInt(age, 10),
+          weight: parseFloat(weight),
+          height: parseFloat(height),
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        if (currentPhase === 'hamil' && hpht) {
+          profile.hpht = hpht.toISOString();
+        }
+
+        if (currentPhase === 'pasca-melahirkan') {
+          if (babyDob) {
+            profile.babyDob = babyDob.toISOString();
+          }
+          if (babyName.trim()) {
+            profile.babyName = babyName.trim();
+          }
+          if (babyGender) {
+            profile.babyGender = babyGender;
+          }
+        }
+
+        await addProfile(profile);
+        await completeOnboarding();
+
+        router.replace('/(tabs)');
       }
-
-      if (currentPhase === 'pasca-melahirkan') {
-        if (babyDob) {
-          profile.babyDob = babyDob.toISOString();
-        }
-        if (babyName.trim()) {
-          profile.babyName = babyName.trim();
-        }
-        if (babyGender) {
-          profile.babyGender = babyGender;
-        }
-      }
-
-      await addProfile(profile);
-      await completeOnboarding();
-
-      router.replace('/(tabs)');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Terjadi kesalahan saat menyimpan profil';
       Alert.alert('Gagal Menyimpan', message);
@@ -179,8 +249,21 @@ export default function ProfileSetupScreen() {
     >
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.header}>
-          <Text style={styles.stepLabel}>Langkah 2 dari 2</Text>
-          <Text style={styles.title}>Lengkapi Profil</Text>
+          {isChangePhaseMode && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.stepLabel}>
+            {isChangePhaseMode ? 'Ganti Fase' : 'Langkah 2 dari 2'}
+          </Text>
+          <Text style={styles.title}>
+            {isChangePhaseMode ? 'Perbarui Data Profil' : 'Lengkapi Profil'}
+          </Text>
           <View style={styles.phaseBadge}>
             <View style={[styles.phaseBadgeDot, { backgroundColor: config.color }]} />
             <Text style={styles.phaseBadgeText}>{config.label}</Text>
@@ -335,7 +418,10 @@ export default function ProfileSetupScreen() {
                     <Text
                       style={[
                         styles.genderText,
-                        babyGender === 'laki-laki' && { color: Colors.secondary, fontWeight: FontWeight.semibold },
+                        babyGender === 'laki-laki' && {
+                          color: Colors.secondary,
+                          fontWeight: FontWeight.semibold,
+                        },
                       ]}
                     >
                       Laki-laki
@@ -359,7 +445,10 @@ export default function ProfileSetupScreen() {
                     <Text
                       style={[
                         styles.genderText,
-                        babyGender === 'perempuan' && { color: Colors.primary, fontWeight: FontWeight.semibold },
+                        babyGender === 'perempuan' && {
+                          color: Colors.primary,
+                          fontWeight: FontWeight.semibold,
+                        },
                       ]}
                     >
                       Perempuan
@@ -410,7 +499,7 @@ export default function ProfileSetupScreen() {
 
         <View style={styles.bottomBar}>
           <Button
-            title="Simpan & Mulai"
+            title={isChangePhaseMode ? 'Simpan Perubahan' : 'Simpan & Mulai'}
             onPress={handleSubmit}
             size="lg"
             fullWidth
@@ -438,6 +527,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingTop: Spacing.xxxl,
     paddingBottom: Spacing.lg,
+  },
+  backButton: {
+    marginBottom: Spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stepLabel: {
     fontSize: FontSize.sm,
