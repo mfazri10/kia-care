@@ -11,6 +11,7 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="pin-lock" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="education" />
         <Stack.Screen name="pregnancy" />
         <Stack.Screen name="postpartum" />
         <Stack.Screen name="pre-pregnancy" />

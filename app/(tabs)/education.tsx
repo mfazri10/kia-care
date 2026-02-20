@@ -9,24 +9,35 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useApp } from '@/context/AppContext';
-import { EDUCATION_ARTICLES } from '@/constants/data';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius, phaseConfig } from '@/constants/theme';
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
 import { getPregnancyWeek } from '@/utils/date';
-import type { EducationArticle, Phase } from '@/types';
+import type { Phase } from '@/types';
+import educationData from '@/data/education.json';
+
+interface ArticleData {
+  id: string;
+  phase: string;
+  weekNumber?: number;
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+}
 
 const CATEGORY_ALL = 'Semua';
 
 function getCategoriesForPhase(phase: Phase): string[] {
-  const articles = EDUCATION_ARTICLES.filter((a) => a.phase === phase);
+  const articles = (educationData as ArticleData[]).filter((a) => a.phase === phase);
   const categories = new Set(articles.map((a) => a.category));
   return [CATEGORY_ALL, ...Array.from(categories)];
 }
 
-function getPhaseBadgeLabel(phase: Phase): string {
+function getPhaseBadgeLabel(phase: string): string {
   switch (phase) {
     case 'pra-hamil':
       return 'Pra Hamil';
@@ -41,9 +52,9 @@ function getPhaseBadgeLabel(phase: Phase): string {
 
 export default function EducationScreen() {
   const { activeProfile } = useApp();
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState(CATEGORY_ALL);
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
 
   const currentPhase: Phase = activeProfile?.phase ?? 'hamil';
   const config = phaseConfig[currentPhase];
@@ -57,14 +68,12 @@ export default function EducationScreen() {
   }, [currentPhase, activeProfile?.hpht]);
 
   const filteredArticles = useMemo(() => {
-    let articles = EDUCATION_ARTICLES.filter((a) => a.phase === currentPhase);
+    let articles = (educationData as ArticleData[]).filter((a) => a.phase === currentPhase);
 
-    // Filter by category
     if (selectedCategory !== CATEGORY_ALL) {
       articles = articles.filter((a) => a.category === selectedCategory);
     }
 
-    // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       articles = articles.filter(
@@ -75,14 +84,12 @@ export default function EducationScreen() {
       );
     }
 
-    // For pregnancy phase, sort by week relevance (closest week first)
     if (currentPhase === 'hamil' && pregnancyWeek > 0) {
       articles.sort((a, b) => {
         const aWeek = a.weekNumber ?? Infinity;
         const bWeek = b.weekNumber ?? Infinity;
         const aDiff = Math.abs(aWeek - pregnancyWeek);
         const bDiff = Math.abs(bWeek - pregnancyWeek);
-        // Articles with weekNumber closer to current week come first
         if (aWeek !== Infinity && bWeek === Infinity) return -1;
         if (aWeek === Infinity && bWeek !== Infinity) return 1;
         return aDiff - bDiff;
@@ -92,9 +99,9 @@ export default function EducationScreen() {
     return articles;
   }, [currentPhase, selectedCategory, searchQuery, pregnancyWeek]);
 
-  const handleToggleArticle = useCallback((articleId: string) => {
-    setExpandedArticleId((prev) => (prev === articleId ? null : articleId));
-  }, []);
+  const handleOpenArticle = useCallback((articleId: string) => {
+    router.push(`/education/${articleId}`);
+  }, [router]);
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
@@ -181,7 +188,6 @@ export default function EducationScreen() {
         contentContainerStyle={styles.articlesContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Week indicator for pregnancy */}
         {currentPhase === 'hamil' && pregnancyWeek > 0 && !searchQuery && selectedCategory === CATEGORY_ALL && (
           <View style={styles.weekIndicator}>
             <Ionicons name="calendar" size={16} color={config.color} />
@@ -190,6 +196,10 @@ export default function EducationScreen() {
             </Text>
           </View>
         )}
+
+        <Text style={styles.articleCount}>
+          {filteredArticles.length} artikel ditemukan
+        </Text>
 
         {filteredArticles.length === 0 ? (
           <EmptyState
@@ -209,8 +219,7 @@ export default function EducationScreen() {
             <ArticleCard
               key={article.id}
               article={article}
-              isExpanded={expandedArticleId === article.id}
-              onToggle={handleToggleArticle}
+              onPress={() => handleOpenArticle(article.id)}
               phaseColor={config.color}
               pregnancyWeek={pregnancyWeek}
               currentPhase={currentPhase}
@@ -225,9 +234,8 @@ export default function EducationScreen() {
 }
 
 interface ArticleCardProps {
-  article: EducationArticle;
-  isExpanded: boolean;
-  onToggle: (id: string) => void;
+  article: ArticleData;
+  onPress: () => void;
   phaseColor: string;
   pregnancyWeek: number;
   currentPhase: Phase;
@@ -235,8 +243,7 @@ interface ArticleCardProps {
 
 function ArticleCard({
   article,
-  isExpanded,
-  onToggle,
+  onPress,
   phaseColor,
   pregnancyWeek,
   currentPhase,
@@ -252,9 +259,8 @@ function ArticleCard({
         ? { ...styles.articleCard, borderLeftWidth: 3, borderLeftColor: phaseColor }
         : styles.articleCard
       }
-      onPress={() => onToggle(article.id)}
+      onPress={onPress}
     >
-      {/* Badges Row */}
       <View style={styles.badgesRow}>
         <View style={[styles.categoryBadge, { backgroundColor: phaseColor + '15' }]}>
           <Text style={[styles.categoryBadgeText, { color: phaseColor }]}>{article.category}</Text>
@@ -266,38 +272,15 @@ function ArticleCard({
             </Text>
           </View>
         )}
-        <View style={[styles.phaseBadge, { backgroundColor: phaseColor + '10' }]}>
-          <Text style={[styles.phaseBadgeText, { color: phaseColor }]}>
-            {getPhaseBadgeLabel(article.phase)}
-          </Text>
-        </View>
       </View>
 
-      {/* Title */}
       <Text style={styles.articleTitle}>{article.title}</Text>
+      <Text style={styles.articleSummary} numberOfLines={2}>{article.summary}</Text>
 
-      {/* Summary */}
-      <Text style={styles.articleSummary}>{article.summary}</Text>
-
-      {/* Expand/Collapse Indicator */}
-      <View style={styles.expandRow}>
-        <Text style={[styles.expandText, { color: phaseColor }]}>
-          {isExpanded ? 'Sembunyikan' : 'Baca selengkapnya'}
-        </Text>
-        <Ionicons
-          name={isExpanded ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color={phaseColor}
-        />
+      <View style={styles.readMoreRow}>
+        <Text style={[styles.readMoreText, { color: phaseColor }]}>Baca selengkapnya</Text>
+        <Ionicons name="arrow-forward" size={14} color={phaseColor} />
       </View>
-
-      {/* Expanded Content */}
-      {isExpanded && (
-        <View style={styles.expandedContent}>
-          <View style={[styles.contentDivider, { backgroundColor: phaseColor + '20' }]} />
-          <Text style={styles.contentText}>{article.content}</Text>
-        </View>
-      )}
     </Card>
   );
 }
@@ -376,6 +359,11 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: FontWeight.medium,
   },
+  articleCount: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    marginBottom: Spacing.md,
+  },
   articleCard: {
     marginBottom: Spacing.md,
   },
@@ -403,15 +391,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: FontWeight.medium,
   },
-  phaseBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-  },
-  phaseBadgeText: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
-  },
   articleTitle: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
@@ -424,25 +403,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: Spacing.sm,
   },
-  expandRow: {
+  readMoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  expandText: {
+  readMoreText: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.semibold,
-  },
-  expandedContent: {
-    marginTop: Spacing.md,
-  },
-  contentDivider: {
-    height: 1,
-    marginBottom: Spacing.md,
-  },
-  contentText: {
-    fontSize: FontSize.md,
-    color: Colors.textPrimary,
-    lineHeight: 24,
   },
 });

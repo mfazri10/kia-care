@@ -1,4 +1,4 @@
-// KIA Care - Unified Calendar (Kalender)
+// KIA Care - Unified Calendar (Jadwal)
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '@/context/AppContext';
-import { Colors, Spacing, FontSize, FontWeight, BorderRadius, Shadow } from '@/constants/theme';
+import { Colors, Spacing, FontSize, FontWeight, BorderRadius, Shadow, phaseConfig } from '@/constants/theme';
 import { ANC_SCHEDULE, KF_SCHEDULE } from '@/constants/data';
 import Header from '@/components/ui/Header';
 import Card from '@/components/ui/Card';
@@ -22,12 +22,14 @@ import {
   getCalendarDates,
   formatDateID,
   getTodayISO,
+  getPregnancyWeek,
 } from '@/utils/date';
 import {
   getCalendarEvents,
   saveCalendarEvents,
 } from '@/utils/storage';
-import type { CalendarEvent } from '@/types';
+import type { CalendarEvent, Phase } from '@/types';
+import scheduleData from '@/data/schedule.json';
 
 const DAYS_OF_WEEK = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 const MONTHS_ID = [
@@ -36,6 +38,15 @@ const MONTHS_ID = [
 ];
 
 type EventType = CalendarEvent['type'];
+
+interface ScheduleItem {
+  id: string;
+  title: string;
+  type: string;
+  description: string;
+  dayOffset?: number;
+  weekOffset?: number;
+}
 
 const EVENT_TYPE_OPTIONS: { value: EventType; label: string }[] = [
   { value: 'anc', label: 'Kunjungan ANC' },
@@ -93,6 +104,8 @@ export default function CalendarScreen() {
   const [newNotes, setNewNotes] = useState('');
 
   const profileId = activeProfile?.id ?? '';
+  const currentPhase: Phase = activeProfile?.phase ?? 'hamil';
+  const config = phaseConfig[currentPhase];
 
   // Load events from storage
   const loadEvents = useCallback(async () => {
@@ -117,19 +130,66 @@ export default function CalendarScreen() {
     loadEvents();
   }, [loadEvents]);
 
-  // Generate auto-events from ANC/KF schedules
+  // Generate schedule-based events from schedule.json
+  const scheduleEvents = useMemo((): CalendarEvent[] => {
+    if (!activeProfile) return [];
+    const events: CalendarEvent[] = [];
+    const phase = activeProfile.phase;
+
+    const phaseSchedule = (scheduleData as Record<string, ScheduleItem[]>)[phase];
+    if (!phaseSchedule) return [];
+
+    let referenceDate: Date | null = null;
+
+    if (phase === 'pra-hamil') {
+      // Use profile creation date as reference
+      referenceDate = new Date(activeProfile.createdAt);
+    } else if (phase === 'hamil' && activeProfile.hpht) {
+      referenceDate = new Date(activeProfile.hpht);
+    } else if (phase === 'pasca-melahirkan' && activeProfile.babyDob) {
+      referenceDate = new Date(activeProfile.babyDob);
+    }
+
+    if (!referenceDate) return [];
+
+    phaseSchedule.forEach((item) => {
+      const eventDate = new Date(referenceDate!);
+
+      if (item.weekOffset !== undefined) {
+        eventDate.setDate(eventDate.getDate() + item.weekOffset * 7);
+      } else if (item.dayOffset !== undefined) {
+        eventDate.setDate(eventDate.getDate() + item.dayOffset);
+      }
+
+      const eventType = EVENT_TYPE_OPTIONS.find(o => o.value === item.type)
+        ? (item.type as EventType)
+        : 'lainnya';
+
+      events.push({
+        id: `schedule-${item.id}`,
+        profileId: activeProfile.id,
+        date: dateToISO(eventDate),
+        title: item.title,
+        type: eventType,
+        completed: false,
+        notes: item.description,
+      });
+    });
+
+    return events;
+  }, [activeProfile]);
+
+  // Generate auto-events from ANC/KF schedules (legacy support)
   const autoEvents = useMemo((): CalendarEvent[] => {
     if (!activeProfile) return [];
     const events: CalendarEvent[] = [];
 
     // ANC visit events from stored ANC visits
     if (activeProfile.phase === 'hamil' && activeProfile.hpht) {
-      // We derive ANC schedule dates from HPHT
       const hphtDate = new Date(activeProfile.hpht);
       ANC_SCHEDULE.forEach((schedule) => {
         const weekRange = schedule.weekRange.split('-');
         const startWeek = parseInt(weekRange[0], 10);
-        // Schedule the visit at the start of the week range
         const visitDate = new Date(hphtDate);
         visitDate.setDate(visitDate.getDate() + startWeek * 7);
         events.push({
@@ -149,11 +209,10 @@ export default function CalendarScreen() {
       const babyDob = new Date(activeProfile.babyDob);
       KF_SCHEDULE.forEach((schedule) => {
         let daysAfter = 0;
-        // Parse timing to get a rough date
-        if (schedule.visitNumber === 1) daysAfter = 1; // 6-48 hours
-        else if (schedule.visitNumber === 2) daysAfter = 5; // 3-7 days
-        else if (schedule.visitNumber === 3) daysAfter = 14; // 8-28 days
-        else if (schedule.visitNumber === 4) daysAfter = 35; // 29-42 days
+        if (schedule.visitNumber === 1) daysAfter = 1;
+        else if (schedule.visitNumber === 2) daysAfter = 5;
+        else if (schedule.visitNumber === 3) daysAfter = 14;
+        else if (schedule.visitNumber === 4) daysAfter = 35;
 
         const visitDate = new Date(babyDob);
         visitDate.setDate(visitDate.getDate() + daysAfter);
@@ -172,14 +231,17 @@ export default function CalendarScreen() {
     return events;
   }, [activeProfile]);
 
-  // Combine stored and auto events
+  // Combine all event sources
   const allEvents = useMemo(() => {
-    // Merge, avoiding duplicates by id
     const eventMap = new Map<string, CalendarEvent>();
+    // Schedule.json events first (lowest priority)
+    scheduleEvents.forEach((e) => eventMap.set(e.id, e));
+    // Auto events (medium priority)
     autoEvents.forEach((e) => eventMap.set(e.id, e));
+    // Stored/user events (highest priority)
     storedEvents.forEach((e) => eventMap.set(e.id, e));
     return Array.from(eventMap.values());
-  }, [storedEvents, autoEvents]);
+  }, [storedEvents, autoEvents, scheduleEvents]);
 
   // Calendar dates for current month
   const calendarDates = useMemo(
@@ -192,6 +254,17 @@ export default function CalendarScreen() {
     () => allEvents.filter((e) => e.date === selectedDate),
     [allEvents, selectedDate]
   );
+
+  // Upcoming events (next 30 days)
+  const upcomingEvents = useMemo(() => {
+    const todayStr = getTodayISO();
+    const thirtyDaysLater = new Date();
+    thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
+    const thirtyStr = dateToISO(thirtyDaysLater);
+    return allEvents
+      .filter((e) => e.date >= todayStr && e.date <= thirtyStr)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [allEvents]);
 
   // Events map for quick lookup (date -> event types)
   const eventsMap = useMemo(() => {
@@ -264,7 +337,6 @@ export default function CalendarScreen() {
       const existingEvents = await getCalendarEvents();
       const updatedEvents = [...(existingEvents || []), newEvent];
       await saveCalendarEvents(updatedEvents);
-      // Update local state with only profile events
       setStoredEvents((prev) => [...prev, newEvent]);
       setShowAddModal(false);
       resetForm();
@@ -282,12 +354,12 @@ export default function CalendarScreen() {
   if (!activeProfile) {
     return (
       <View style={styles.container}>
-        <Header title="Kalender" subtitle="Jadwal dan acara" />
+        <Header title="Jadwal" subtitle="Jadwal dan acara" />
         <View style={styles.centerContent}>
           <EmptyState
             icon="person-outline"
             title="Tidak ada profil aktif"
-            description="Buat profil terlebih dahulu untuk mengakses kalender."
+            description="Buat profil terlebih dahulu untuk mengakses jadwal."
           />
         </View>
       </View>
@@ -299,7 +371,8 @@ export default function CalendarScreen() {
   return (
     <View style={styles.container}>
       <Header
-        title="Kalender"
+        title="Jadwal"
+        subtitle={`Fase ${config.label}`}
         rightAction={{
           icon: 'today-outline',
           onPress: goToToday,
@@ -307,6 +380,21 @@ export default function CalendarScreen() {
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Phase Event Summary */}
+        <View style={[styles.phaseSummary, { backgroundColor: config.bgColor }]}>
+          <View style={styles.phaseSummaryRow}>
+            <Ionicons name="calendar" size={16} color={config.color} />
+            <Text style={[styles.phaseSummaryText, { color: config.color }]}>
+              {upcomingEvents.length} jadwal dalam 30 hari ke depan
+            </Text>
+          </View>
+          {currentPhase === 'hamil' && activeProfile.hpht && (
+            <Text style={[styles.phaseSummarySubtext, { color: config.color + 'AA' }]}>
+              Minggu ke-{getPregnancyWeek(activeProfile.hpht)} kehamilan
+            </Text>
+          )}
+        </View>
+
         {/* Month Navigation */}
         <View style={styles.monthNav}>
           <TouchableOpacity onPress={goToPrevMonth} style={styles.navButton} activeOpacity={0.7}>
@@ -403,7 +491,7 @@ export default function CalendarScreen() {
               variant="secondary"
               size="sm"
               icon="add-outline"
-              color={Colors.primary}
+              color={config.color}
             />
           </View>
 
@@ -441,6 +529,40 @@ export default function CalendarScreen() {
             ))
           )}
         </View>
+
+        {/* Upcoming Events Section */}
+        {upcomingEvents.length > 0 && (
+          <View style={styles.upcomingSection}>
+            <Text style={styles.upcomingSectionTitle}>
+              <Ionicons name="time-outline" size={16} color={Colors.textPrimary} />
+              {'  '}Jadwal Mendatang
+            </Text>
+            {upcomingEvents.slice(0, 5).map((event) => (
+              <TouchableOpacity
+                key={event.id}
+                style={styles.upcomingItem}
+                onPress={() => {
+                  const eventDate = new Date(event.date);
+                  setSelectedDate(event.date);
+                  setCurrentYear(eventDate.getFullYear());
+                  setCurrentMonth(eventDate.getMonth());
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.upcomingDot, { backgroundColor: getEventColor(event.type) }]} />
+                <View style={styles.upcomingTextContainer}>
+                  <Text style={styles.upcomingTitle} numberOfLines={1}>{event.title}</Text>
+                  <Text style={styles.upcomingDate}>{formatDateID(event.date)}</Text>
+                </View>
+                <View style={[styles.upcomingTypeBadge, { backgroundColor: getEventColor(event.type) + '15' }]}>
+                  <Text style={[styles.upcomingTypeText, { color: getEventColor(event.type) }]}>
+                    {getEventTypeLabel(event.type)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Legend */}
         <Card style={styles.legendCard}>
@@ -507,7 +629,7 @@ export default function CalendarScreen() {
             </TouchableOpacity>
 
             {showTypeDropdown && (
-              <View style={styles.dropdownList}>
+              <ScrollView style={styles.dropdownList} nestedScrollEnabled>
                 {EVENT_TYPE_OPTIONS.map((option) => (
                   <TouchableOpacity
                     key={option.value}
@@ -530,7 +652,7 @@ export default function CalendarScreen() {
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             )}
 
             {/* Notes Input */}
@@ -582,6 +704,27 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.sm,
+  },
+  // Phase Summary
+  phaseSummary: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  phaseSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  phaseSummaryText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+  },
+  phaseSummarySubtext: {
+    fontSize: FontSize.xs,
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.xl + Spacing.sm,
   },
   // Month Navigation
   monthNav: {
@@ -724,6 +867,56 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 20,
   },
+  // Upcoming Events
+  upcomingSection: {
+    marginBottom: Spacing.lg,
+  },
+  upcomingSectionTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  upcomingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  upcomingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Spacing.md,
+  },
+  upcomingTextContainer: {
+    flex: 1,
+  },
+  upcomingTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+  },
+  upcomingDate: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  upcomingTypeBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+    marginLeft: Spacing.sm,
+  },
+  upcomingTypeText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
   // Legend
   legendCard: {
     marginBottom: Spacing.md,
@@ -832,6 +1025,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     marginBottom: Spacing.lg,
+    maxHeight: 200,
     ...Shadow.sm,
   },
   dropdownItem: {

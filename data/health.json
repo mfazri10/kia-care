@@ -1,0 +1,157 @@
+{
+  "pra-hamil": {
+    "checklist": [
+      { "id": "chk-1", "title": "Konsumsi Asam Folat", "description": "400 mcg asam folat setiap hari", "icon": "medical-outline", "completed": false },
+      { "id": "chk-2", "title": "Pemeriksaan Kesehatan Umum", "description": "Cek darah, tekanan darah, gula darah", "icon": "fitness-outline", "completed": false },
+      { "id": "chk-3", "title": "Imunisasi TT Lengkap", "description": "Pastikan status vaksin TT lengkap", "icon": "shield-checkmark-outline", "completed": false },
+      { "id": "chk-4", "title": "Pola Makan Sehat", "description": "Perbanyak buah, sayur, dan protein", "icon": "nutrition-outline", "completed": false },
+      { "id": "chk-5", "title": "Olahraga Teratur", "description": "30 menit, 3-5 kali seminggu", "icon": "walk-outline", "completed": false },
+      { "id": "chk-6", "title": "Berhenti Merokok", "description": "Hindari rokok dan paparan asap rokok", "icon": "ban-outline", "completed": false },
+      { "id": "chk-7", "title": "Periksa Gigi", "description": "Kunjungi dokter gigi sebelum hamil", "icon": "sparkles-outline", "completed": false },
+      { "id": "chk-8", "title": "Catat Siklus Menstruasi", "description": "Lacak tanggal menstruasi untuk masa subur", "icon": "calendar-outline", "completed": false }
+    ],
+    "fertilityDefaults": {
+      "cycleLength": 28,
+      "periodLength": 5
+    },
+    "healthNotes": {
+      "title": "Catatan Kesehatan Pra-Hamil",
+      "fields": ["Golongan Darah", "Rhesus", "Berat Badan (kg)", "Tinggi Badan (cm)", "Tekanan Darah", "Hemoglobin (g/dL)", "Gula Darah Puasa", "Catatan Dokter"]
+    }
+  },
+  "hamil": {
+    "ancVisits": [
+      {
+        "visitNumber": 1,
+        "label": "Kunjungan 1 (K1)",
+        "trimester": 1,
+        "weekRange": "0-12 minggu",
+        "description": "Pemeriksaan awal lengkap",
+        "completed": false,
+        "date": null,
+        "notes": ""
+      },
+      {
+        "visitNumber": 2,
+        "label": "Kunjungan 2 (K2)",
+        "trimester": 2,
+        "weekRange": "13-24 minggu",
+        "description": "Pemeriksaan rutin trimester 2",
+        "completed": false,
+        "date": null,
+        "notes": ""
+      },
+      {
+        "visitNumber": 3,
+        "label": "Kunjungan 3 (K3)",
+        "trimester": 2,
+        "weekRange": "24-28 minggu",
+        "description": "Tes gula darah dan monitoring",
+        "completed": false,
+        "date": null,
+        "notes": ""
+      },
+      {
+        "visitNumber": 4,
+        "label": "Kunjungan 4 (K4)",
+        "trimester": 3,
+        "weekRange": "28-32 minggu",
+        "description": "Persiapan persalinan (P4K)",
+        "completed": false,
+        "date": null,
+        "notes": ""
+      },
+      {
+        "visitNumber": 5,
+        "label": "Kunjungan 5 (K5)",
+        "trimester": 3,
+        "weekRange": "32-36 minggu",
+        "description": "Monitoring ketat menjelang persalinan",
+        "completed": false,
+        "date": null,
+        "notes": ""
+      },
+      {
+        "visitNumber": 6,
+        "label": "Kunjungan 6 (K6)",
+        "trimester": 3,
+        "weekRange": "36-40 minggu",
+        "description": "Rencana persalinan final",
+        "completed": false,
+        "date": null,
+        "notes": ""
+      }
+    ],
+    "ttdLog": {
+      "target": 90,
+      "taken": 0,
+      "description": "Target: 90 tablet selama kehamilan"
+    },
+    "dangerSigns": [
+      { "id": "ds-1", "sign": "Pendarahan dari jalan lahir", "severity": "danger" },
+      { "id": "ds-2", "sign": "Sakit kepala hebat", "severity": "danger" },
+      { "id": "ds-3", "sign": "Pandangan kabur", "severity": "danger" },
+      { "id": "ds-4", "sign": "Bengkak pada wajah/tangan/kaki", "severity": "danger" },
+      { "id": "ds-5", "sign": "Demam tinggi (>38°C)", "severity": "danger" },
+      { "id": "ds-6", "sign": "Gerakan janin berkurang", "severity": "danger" },
+      { "id": "ds-7", "sign": "Ketuban pecah sebelum waktunya", "severity": "danger" },
+      { "id": "ds-8", "sign": "Mual muntah berlebihan", "severity": "warning" },
+      { "id": "ds-9", "sign": "Nyeri perut hebat", "severity": "danger" },
+      { "id": "ds-10", "sign": "Kejang", "severity": "danger" }
+    ],
+    "weightBpLog": {
+      "title": "Catatan Berat Badan & Tekanan Darah",
+      "fields": ["Tanggal", "Berat Badan (kg)", "Tekanan Darah Sistolik", "Tekanan Darah Diastolik", "Catatan"]
+    }
+  },
+  "pasca-melahirkan": {
+    "kfVisits": [
+      {
+        "visitNumber": 1,
+        "label": "KF 1",
+        "timing": "6-48 jam setelah persalinan",
+        "description": "Pemeriksaan awal ibu dan bayi",
+        "completed": false,
+        "date": null
+      },
+      {
+        "visitNumber": 2,
+        "label": "KF 2",
+        "timing": "3-7 hari setelah persalinan",
+        "description": "Evaluasi penyembuhan dan menyusui",
+        "completed": false,
+        "date": null
+      },
+      {
+        "visitNumber": 3,
+        "label": "KF 3",
+        "timing": "8-28 hari setelah persalinan",
+        "description": "Pemulihan lanjutan dan konseling KB",
+        "completed": false,
+        "date": null
+      },
+      {
+        "visitNumber": 4,
+        "label": "KF 4",
+        "timing": "29-42 hari setelah persalinan",
+        "description": "Pemeriksaan akhir masa nifas",
+        "completed": false,
+        "date": null
+      }
+    ],
+    "breastfeedingLog": {
+      "title": "Log Menyusui",
+      "fields": ["Waktu Mulai", "Waktu Selesai", "Sisi (Kiri/Kanan/Keduanya)", "Jenis (Langsung/Pompa)", "Jumlah (ml)", "Catatan"]
+    },
+    "babyData": {
+      "title": "Data Pertumbuhan Bayi",
+      "records": [
+        { "ageWeeks": 0, "weight": 3200, "height": 49.5, "headCircumference": 34.0, "date": "Saat lahir" },
+        { "ageWeeks": 2, "weight": 3400, "height": 50.5, "headCircumference": 34.5, "date": "2 minggu" },
+        { "ageWeeks": 4, "weight": 4200, "height": 53.0, "headCircumference": 36.0, "date": "1 bulan" },
+        { "ageWeeks": 8, "weight": 5100, "height": 56.5, "headCircumference": 38.0, "date": "2 bulan" },
+        { "ageWeeks": 12, "weight": 5900, "height": 59.5, "headCircumference": 39.5, "date": "3 bulan" }
+      ]
+    }
+  }
+}

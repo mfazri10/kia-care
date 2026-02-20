@@ -40,9 +40,22 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="kesehatan"
+        options={{
+          title: 'Kesehatan',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'heart' : 'heart-outline'}
+              color={color}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Kalender',
+          title: 'Jadwal',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'calendar' : 'calendar-outline'}

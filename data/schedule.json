@@ -1,0 +1,176 @@
+{
+  "pra-hamil": [
+    {
+      "id": "sch-pra-1",
+      "title": "Konsultasi Dokter Kandungan",
+      "type": "kontrol",
+      "description": "Pemeriksaan kesehatan umum dan konsultasi program hamil",
+      "dayOffset": 7
+    },
+    {
+      "id": "sch-pra-2",
+      "title": "Pemeriksaan Lab (TORCH, Darah Lengkap)",
+      "type": "kontrol",
+      "description": "Tes laboratorium pra-kehamilan untuk memastikan kesehatan optimal",
+      "dayOffset": 14
+    },
+    {
+      "id": "sch-pra-3",
+      "title": "Vaksinasi TT (Tetanus Toksoid)",
+      "type": "imunisasi",
+      "description": "Vaksinasi tetanus untuk melindungi ibu dan calon bayi",
+      "dayOffset": 21
+    },
+    {
+      "id": "sch-pra-4",
+      "title": "Konsultasi Gizi",
+      "type": "kontrol",
+      "description": "Konsultasi nutrisi dan perencanaan diet sehat pra-kehamilan",
+      "dayOffset": 30
+    },
+    {
+      "id": "sch-pra-5",
+      "title": "Periksa Gigi",
+      "type": "kontrol",
+      "description": "Pemeriksaan dan perawatan gigi sebelum kehamilan",
+      "dayOffset": 35
+    },
+    {
+      "id": "sch-pra-6",
+      "title": "Follow-up Dokter Kandungan",
+      "type": "kontrol",
+      "description": "Evaluasi hasil lab dan rencana selanjutnya",
+      "dayOffset": 45
+    }
+  ],
+  "hamil": [
+    {
+      "id": "sch-hamil-1",
+      "title": "Kunjungan ANC 1 (K1)",
+      "type": "anc",
+      "description": "Trimester 1: Pemeriksaan awal kehamilan lengkap",
+      "weekOffset": 8
+    },
+    {
+      "id": "sch-hamil-2",
+      "title": "Kunjungan ANC 2 (K2)",
+      "type": "anc",
+      "description": "Trimester 2: Pemeriksaan rutin dan monitoring janin",
+      "weekOffset": 16
+    },
+    {
+      "id": "sch-hamil-3",
+      "title": "Kunjungan ANC 3 (K3)",
+      "type": "anc",
+      "description": "Trimester 2: Tes gula darah dan pemantauan lanjutan",
+      "weekOffset": 24
+    },
+    {
+      "id": "sch-hamil-4",
+      "title": "Kunjungan ANC 4 (K4)",
+      "type": "anc",
+      "description": "Trimester 3: Persiapan persalinan (P4K)",
+      "weekOffset": 30
+    },
+    {
+      "id": "sch-hamil-5",
+      "title": "Kunjungan ANC 5 (K5)",
+      "type": "anc",
+      "description": "Trimester 3: Monitoring ketat menjelang persalinan",
+      "weekOffset": 34
+    },
+    {
+      "id": "sch-hamil-6",
+      "title": "Kunjungan ANC 6 (K6)",
+      "type": "anc",
+      "description": "Trimester 3: Rencana persalinan final",
+      "weekOffset": 38
+    },
+    {
+      "id": "sch-hamil-ttd",
+      "title": "Ambil Tablet Tambah Darah (TTD)",
+      "type": "ttd",
+      "description": "Ambil stok TTD di Puskesmas/Posyandu",
+      "weekOffset": 10
+    },
+    {
+      "id": "sch-hamil-usg1",
+      "title": "USG Trimester 1",
+      "type": "kontrol",
+      "description": "Ultrasonografi untuk konfirmasi kehamilan dan usia janin",
+      "weekOffset": 10
+    },
+    {
+      "id": "sch-hamil-usg2",
+      "title": "USG Anomali (Trimester 2)",
+      "type": "kontrol",
+      "description": "USG detail untuk pemeriksaan anatomi janin",
+      "weekOffset": 20
+    },
+    {
+      "id": "sch-hamil-imun",
+      "title": "Imunisasi TT untuk Ibu Hamil",
+      "type": "imunisasi",
+      "description": "Vaksinasi Tetanus Toksoid selama kehamilan",
+      "weekOffset": 16
+    }
+  ],
+  "pasca-melahirkan": [
+    {
+      "id": "sch-pasca-1",
+      "title": "Kunjungan Nifas KF1",
+      "type": "kf",
+      "description": "6-48 jam setelah persalinan: Pemeriksaan awal ibu dan bayi",
+      "dayOffset": 1
+    },
+    {
+      "id": "sch-pasca-2",
+      "title": "Kunjungan Nifas KF2",
+      "type": "kf",
+      "description": "3-7 hari: Evaluasi penyembuhan dan menyusui",
+      "dayOffset": 5
+    },
+    {
+      "id": "sch-pasca-3",
+      "title": "Kunjungan Nifas KF3",
+      "type": "kf",
+      "description": "8-28 hari: Pemulihan lanjutan dan konseling KB",
+      "dayOffset": 14
+    },
+    {
+      "id": "sch-pasca-4",
+      "title": "Kunjungan Nifas KF4",
+      "type": "kf",
+      "description": "29-42 hari: Pemeriksaan akhir masa nifas",
+      "dayOffset": 35
+    },
+    {
+      "id": "sch-pasca-imun1",
+      "title": "Imunisasi BCG & Polio 0 (Bayi)",
+      "type": "imunisasi",
+      "description": "Imunisasi bayi usia 0-1 bulan",
+      "dayOffset": 7
+    },
+    {
+      "id": "sch-pasca-imun2",
+      "title": "Imunisasi DPT-HB-Hib 1 & Polio 1 (Bayi)",
+      "type": "imunisasi",
+      "description": "Imunisasi bayi usia 2 bulan",
+      "dayOffset": 60
+    },
+    {
+      "id": "sch-pasca-imun3",
+      "title": "Imunisasi DPT-HB-Hib 2 & Polio 2 (Bayi)",
+      "type": "imunisasi",
+      "description": "Imunisasi bayi usia 3 bulan",
+      "dayOffset": 90
+    },
+    {
+      "id": "sch-pasca-kb",
+      "title": "Konsultasi KB (Keluarga Berencana)",
+      "type": "kontrol",
+      "description": "Konsultasi metode kontrasepsi pasca persalinan",
+      "dayOffset": 42
+    }
+  ]
+}

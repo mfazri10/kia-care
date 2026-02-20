@@ -12,9 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useApp } from '@/context/AppContext';
-import { Colors, Spacing, FontSize, FontWeight, BorderRadius, phaseConfig } from '@/constants/theme';
+import { Colors, Spacing, FontSize, FontWeight, BorderRadius, Shadow, phaseConfig } from '@/constants/theme';
 import Card from '@/components/ui/Card';
 import ProgressBar from '@/components/ui/ProgressBar';
+import SectionTitle from '@/components/ui/SectionTitle';
+import PrimaryButton from '@/components/ui/PrimaryButton';
 import {
   getPregnancyWeek,
   getDaysUntilDue,
@@ -25,6 +27,36 @@ import {
   getTrimester,
 } from '@/utils/date';
 import { getTTDLog, getANCVisits, getKFVisits, getBreastfeedingSessions } from '@/utils/storage';
+import type { Phase } from '@/types';
+
+// Daily reminders data per phase
+function getDailyReminders(phase: Phase, pregnancyWeek: number): { id: string; icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string; color: string; done: boolean }[] {
+  switch (phase) {
+    case 'pra-hamil':
+      return [
+        { id: 'r1', icon: 'medical-outline', title: 'Minum Asam Folat', subtitle: '400 mcg per hari', color: Colors.praHamil, done: false },
+        { id: 'r2', icon: 'walk-outline', title: 'Olahraga Ringan', subtitle: '30 menit jalan kaki', color: Colors.secondary, done: false },
+        { id: 'r3', icon: 'book-outline', title: 'Edukasi Minggu Ini', subtitle: 'Baca artikel tentang kesuburan', color: Colors.accent, done: false },
+        { id: 'r4', icon: 'calendar-outline', title: 'Catat Siklus Menstruasi', subtitle: 'Lacak masa subur Anda', color: Colors.primary, done: false },
+      ];
+    case 'hamil':
+      return [
+        { id: 'r1', icon: 'medical-outline', title: 'Minum TTD', subtitle: 'Tablet Tambah Darah harian', color: Colors.accent, done: false },
+        { id: 'r2', icon: 'medkit-outline', title: 'Jadwal ANC', subtitle: pregnancyWeek < 12 ? 'K1 (0-12 minggu)' : pregnancyWeek < 24 ? 'K2 (13-24 minggu)' : 'K3-K6 (>24 minggu)', color: Colors.secondary, done: false },
+        { id: 'r3', icon: 'nutrition-outline', title: 'Makan Bergizi', subtitle: 'Protein, sayur, buah', color: Colors.success, done: false },
+        { id: 'r4', icon: 'book-outline', title: 'Edukasi Minggu Ini', subtitle: `Artikel minggu ke-${pregnancyWeek}`, color: Colors.primary, done: false },
+      ];
+    case 'pasca-melahirkan':
+      return [
+        { id: 'r1', icon: 'water-outline', title: 'Log Menyusui', subtitle: 'Catat sesi menyusui hari ini', color: Colors.primary, done: false },
+        { id: 'r2', icon: 'medkit-outline', title: 'Jadwal KF', subtitle: 'Kunjungan nifas berikutnya', color: Colors.pascaMelahirkan, done: false },
+        { id: 'r3', icon: 'happy-outline', title: 'Cek Kesehatan Mental', subtitle: 'Pantau mood dan perasaan', color: Colors.praHamil, done: false },
+        { id: 'r4', icon: 'book-outline', title: 'Edukasi Minggu Ini', subtitle: 'Tips perawatan bayi', color: Colors.accent, done: false },
+      ];
+    default:
+      return [];
+  }
+}
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
@@ -35,6 +67,7 @@ export default function DashboardScreen() {
   const [ancCompleted, setAncCompleted] = useState(0);
   const [kfCompleted, setKfCompleted] = useState(0);
   const [todayFeedings, setTodayFeedings] = useState(0);
+  const [reminders, setReminders] = useState<{ id: string; icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string; color: string; done: boolean }[]>([]);
 
   const loadDashboardData = useCallback(async () => {
     if (!activeProfile) return;
@@ -75,11 +108,24 @@ export default function DashboardScreen() {
     loadDashboardData();
   }, [loadDashboardData]);
 
+  useEffect(() => {
+    if (activeProfile) {
+      const pregnancyWeek = activeProfile.phase === 'hamil' && activeProfile.hpht ? getPregnancyWeek(activeProfile.hpht) : 0;
+      setReminders(getDailyReminders(activeProfile.phase, pregnancyWeek));
+    }
+  }, [activeProfile]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadDashboardData();
     setRefreshing(false);
   };
+
+  const toggleReminder = useCallback((id: string) => {
+    setReminders((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, done: !r.done } : r))
+    );
+  }, []);
 
   if (!activeProfile) {
     return (
@@ -110,6 +156,20 @@ export default function DashboardScreen() {
     ? getBabyAgeText(activeProfile.babyDob)
     : '';
 
+  // Status text
+  const getStatusText = (): string => {
+    switch (phase) {
+      case 'hamil':
+        return pregnancyWeek > 0 ? `Minggu ke-${pregnancyWeek}` : 'Kehamilan';
+      case 'pasca-melahirkan':
+        return babyAgeText ? `Nifas · ${babyAgeText}` : 'Pasca Melahirkan';
+      case 'pra-hamil':
+        return 'Program Pra Hamil';
+      default:
+        return '';
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -131,21 +191,28 @@ export default function DashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={config.color} />
         }
       >
-        {/* Danger Signs Quick Access */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.dangerButton}
-          onPress={() => router.push('/pregnancy/danger-signs')}
-        >
-          <View style={styles.dangerIcon}>
-            <Ionicons name="warning" size={24} color={Colors.white} />
+        {/* Profile Summary Card */}
+        <Card style={[styles.profileSummaryCard, { borderLeftWidth: 4, borderLeftColor: config.color }]} variant="elevated">
+          <View style={styles.profileSummaryRow}>
+            <View style={[styles.profileAvatar, { backgroundColor: config.color + '20' }]}>
+              <Text style={[styles.profileAvatarText, { color: config.color }]}>
+                {activeProfile.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.profileSummaryInfo}>
+              <Text style={styles.profileSummaryName}>{activeProfile.name}</Text>
+              <Text style={[styles.profileSummaryStatus, { color: config.color }]}>{getStatusText()}</Text>
+              <View style={styles.profileSummaryMeta}>
+                {activeProfile.age > 0 && (
+                  <Text style={styles.metaText}>Usia: {activeProfile.age} th</Text>
+                )}
+                {activeProfile.weight > 0 && (
+                  <Text style={styles.metaText}>BB: {activeProfile.weight} kg</Text>
+                )}
+              </View>
+            </View>
           </View>
-          <View style={styles.dangerContent}>
-            <Text style={styles.dangerTitle}>Tanda Bahaya</Text>
-            <Text style={styles.dangerSubtitle}>Cek gejala darurat segera</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.danger} />
-        </TouchableOpacity>
+        </Card>
 
         {/* Phase-specific Hero Card */}
         {phase === 'hamil' && activeProfile.hpht && (
@@ -214,8 +281,161 @@ export default function DashboardScreen() {
           </Card>
         )}
 
+        {/* Daily Reminders */}
+        <SectionTitle
+          title="Pengingat Hari Ini"
+          icon="notifications-outline"
+          subtitle={`${reminders.filter((r) => r.done).length}/${reminders.length} selesai`}
+        />
+        {reminders.map((reminder) => (
+          <TouchableOpacity
+            key={reminder.id}
+            style={[styles.reminderItem, reminder.done && styles.reminderItemDone]}
+            onPress={() => toggleReminder(reminder.id)}
+            activeOpacity={0.7}
+          >
+            <View style={[
+              styles.reminderCheckbox,
+              reminder.done && { backgroundColor: Colors.success, borderColor: Colors.success },
+            ]}>
+              {reminder.done && <Ionicons name="checkmark" size={14} color={Colors.white} />}
+            </View>
+            <View style={[styles.reminderIcon, { backgroundColor: reminder.color + '15' }]}>
+              <Ionicons name={reminder.icon} size={20} color={reminder.done ? Colors.textTertiary : reminder.color} />
+            </View>
+            <View style={styles.reminderContent}>
+              <Text style={[styles.reminderTitle, reminder.done && styles.reminderTitleDone]}>
+                {reminder.title}
+              </Text>
+              <Text style={styles.reminderSubtitle}>{reminder.subtitle}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+
+        {/* Quick Action Buttons */}
+        <SectionTitle
+          title="Aksi Cepat"
+          icon="flash-outline"
+        />
+        <View style={styles.quickActionsGrid}>
+          {/* Phase-specific quick actions */}
+          {phase === 'hamil' && (
+            <>
+              <PrimaryButton
+                title="Log TTD"
+                subtitle="Catat minum tablet"
+                icon="medical-outline"
+                color={Colors.accent}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+              <PrimaryButton
+                title="Cek Tanda Bahaya"
+                subtitle="Periksa gejala darurat"
+                icon="warning-outline"
+                color={Colors.danger}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+              <PrimaryButton
+                title="Tambah Catatan"
+                subtitle="BB & Tekanan Darah"
+                icon="create-outline"
+                color={Colors.secondary}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+              <PrimaryButton
+                title="Jadwal ANC"
+                subtitle={`${ancCompleted}/6 kunjungan`}
+                icon="medkit-outline"
+                color={Colors.primary}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+            </>
+          )}
+
+          {phase === 'pasca-melahirkan' && (
+            <>
+              <PrimaryButton
+                title="Log Menyusui"
+                subtitle="Catat sesi hari ini"
+                icon="water-outline"
+                color={Colors.primary}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+              <PrimaryButton
+                title="Cek Tanda Bahaya"
+                subtitle="Tanda bahaya nifas"
+                icon="warning-outline"
+                color={Colors.danger}
+                onPress={() => router.push('/pregnancy/danger-signs')}
+                style={styles.quickActionButton}
+              />
+              <PrimaryButton
+                title="Tumbuh Kembang"
+                subtitle="Data bayi terbaru"
+                icon="trending-up-outline"
+                color={Colors.secondary}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+              <PrimaryButton
+                title="Jadwal KF"
+                subtitle={`${kfCompleted}/4 kunjungan`}
+                icon="medkit-outline"
+                color={Colors.pascaMelahirkan}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+            </>
+          )}
+
+          {phase === 'pra-hamil' && (
+            <>
+              <PrimaryButton
+                title="Checklist Persiapan"
+                subtitle="Cek kesiapan Anda"
+                icon="checkbox-outline"
+                color={Colors.praHamil}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+              <PrimaryButton
+                title="Kalender Kesuburan"
+                subtitle="Hitung masa subur"
+                icon="flower-outline"
+                color={Colors.accent}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+              <PrimaryButton
+                title="Tambah Catatan"
+                subtitle="Catatan kesehatan"
+                icon="create-outline"
+                color={Colors.secondary}
+                onPress={() => router.push('/(tabs)/kesehatan')}
+                style={styles.quickActionButton}
+              />
+              <PrimaryButton
+                title="Edukasi"
+                subtitle="Artikel pra-hamil"
+                icon="book-outline"
+                color={Colors.primary}
+                onPress={() => router.push('/(tabs)/education')}
+                style={styles.quickActionButton}
+              />
+            </>
+          )}
+        </View>
+
         {/* Today's Tasks */}
-        <Text style={styles.sectionTitle}>Tugas Hari Ini</Text>
+        <SectionTitle
+          title="Ringkasan Tugas"
+          icon="list-outline"
+        />
 
         {phase === 'hamil' && (
           <View style={styles.tasksGrid}>
@@ -280,115 +500,25 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Quick Access Menu */}
-        <Text style={styles.sectionTitle}>Menu Cepat</Text>
-
-        {phase === 'hamil' && (
-          <View style={styles.menuGrid}>
-            <MenuButton
-              icon="analytics-outline"
-              label="Timeline"
-              color={Colors.primary}
-              onPress={() => router.push('/pregnancy/timeline')}
-            />
-            <MenuButton
-              icon="document-text-outline"
-              label="P4K"
-              color={Colors.secondary}
-              onPress={() => router.push('/pregnancy/p4k')}
-            />
-            <MenuButton
-              icon="warning-outline"
-              label="Tanda Bahaya"
-              color={Colors.danger}
-              onPress={() => router.push('/pregnancy/danger-signs')}
-            />
-            <MenuButton
-              icon="book-outline"
-              label="Edukasi"
-              color={Colors.accent}
-              onPress={() => router.push('/(tabs)/education')}
-            />
+        {/* Danger Signs Quick Access */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.dangerButton}
+          onPress={() => router.push('/pregnancy/danger-signs')}
+        >
+          <View style={styles.dangerIcon}>
+            <Ionicons name="warning" size={24} color={Colors.white} />
           </View>
-        )}
-
-        {phase === 'pasca-melahirkan' && (
-          <View style={styles.menuGrid}>
-            <MenuButton
-              icon="water-outline"
-              label="Stok ASI"
-              color={Colors.primary}
-              onPress={() => router.push('/postpartum/milk-stock')}
-            />
-            <MenuButton
-              icon="trending-up-outline"
-              label="Tumbuh Kembang"
-              color={Colors.secondary}
-              onPress={() => router.push('/postpartum/baby-growth')}
-            />
-            <MenuButton
-              icon="heart-outline"
-              label="Baby Blues"
-              color={Colors.praHamil}
-              onPress={() => router.push('/postpartum/baby-blues')}
-            />
-            <MenuButton
-              icon="warning-outline"
-              label="Tanda Bahaya"
-              color={Colors.danger}
-              onPress={() => router.push('/pregnancy/danger-signs')}
-            />
+          <View style={styles.dangerContent}>
+            <Text style={styles.dangerTitle}>Tanda Bahaya</Text>
+            <Text style={styles.dangerSubtitle}>Cek gejala darurat segera</Text>
           </View>
-        )}
-
-        {phase === 'pra-hamil' && (
-          <View style={styles.menuGrid}>
-            <MenuButton
-              icon="list-outline"
-              label="Checklist"
-              color={Colors.praHamil}
-              onPress={() => router.push('/pre-pregnancy/checklist')}
-            />
-            <MenuButton
-              icon="flower-outline"
-              label="Kesuburan"
-              color={Colors.accent}
-              onPress={() => router.push('/pre-pregnancy/fertility')}
-            />
-            <MenuButton
-              icon="book-outline"
-              label="Edukasi"
-              color={Colors.secondary}
-              onPress={() => router.push('/(tabs)/education')}
-            />
-            <MenuButton
-              icon="calendar-outline"
-              label="Kalender"
-              color={Colors.primary}
-              onPress={() => router.push('/(tabs)/calendar')}
-            />
-          </View>
-        )}
+          <Ionicons name="chevron-forward" size={20} color={Colors.danger} />
+        </TouchableOpacity>
 
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
     </View>
-  );
-}
-
-function MenuButton({ icon, label, color, onPress }: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  color: string;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity style={styles.menuButton} activeOpacity={0.7} onPress={onPress}>
-      <View style={[styles.menuIcon, { backgroundColor: color + '15' }]}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <Text style={styles.menuLabel}>{label}</Text>
-    </TouchableOpacity>
   );
 }
 
@@ -430,13 +560,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.massive,
   },
+
+  // Profile Summary
+  profileSummaryCard: {
+    marginBottom: Spacing.md,
+  },
+  profileSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  profileAvatarText: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+  },
+  profileSummaryInfo: {
+    flex: 1,
+  },
+  profileSummaryName: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+  },
+  profileSummaryStatus: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    marginTop: 2,
+  },
+  profileSummaryMeta: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: 4,
+  },
+  metaText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+  },
+
+  // Danger Button
   dangerButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.dangerBg,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginTop: Spacing.lg,
     borderWidth: 1,
     borderColor: Colors.dangerLight,
   },
@@ -461,6 +636,8 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.danger + 'AA',
   },
+
+  // Hero Card
   heroCard: {
     marginBottom: Spacing.lg,
     padding: Spacing.xl,
@@ -520,13 +697,65 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.white + 'CC',
   },
-  sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
-    color: Colors.textPrimary,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.md,
+
+  // Reminders
+  reminderItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    ...Shadow.sm,
   },
+  reminderItemDone: {
+    backgroundColor: Colors.successBg,
+  },
+  reminderCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  reminderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  reminderContent: {
+    flex: 1,
+  },
+  reminderTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.medium,
+    color: Colors.textPrimary,
+  },
+  reminderTitleDone: {
+    textDecorationLine: 'line-through',
+    color: Colors.textSecondary,
+  },
+  reminderSubtitle: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+
+  // Quick Actions
+  quickActionsGrid: {
+    gap: Spacing.sm,
+  },
+  quickActionButton: {
+    marginBottom: 0,
+  },
+
+  // Tasks
   tasksGrid: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -558,24 +787,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.md,
-  },
-  menuButton: {
-    width: '22%',
-    alignItems: 'center',
-  },
-  menuIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  menuLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    fontWeight: FontWeight.medium,
   },
   errorText: {
     fontSize: FontSize.md,
