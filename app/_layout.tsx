@@ -18,6 +18,9 @@ export default function RootLayout() {
         <Stack.Screen name="red-flag" />
         <Stack.Screen name="growth-chart" />
         <Stack.Screen name="milestone-tracker" />
+        <Stack.Screen name="clinical-records" />
+        <Stack.Screen name="immunization-dashboard" />
+        <Stack.Screen name="export-kia" />
       </Stack>
     </AppProvider>
   );

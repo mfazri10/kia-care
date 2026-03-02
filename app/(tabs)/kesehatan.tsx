@@ -129,6 +129,9 @@ export default function KesehatanScreen() {
         {phase === 'hamil' && <HamilContent profile={activeProfile} />}
         {phase === 'pasca-melahirkan' && <PascaContent profile={activeProfile} />}
 
+        {/* Feature Entry Cards */}
+        <FeatureEntryCards phase={phase} />
+
         <View style={{ height: Spacing.massive }} />
       </ScrollView>
     </View>
@@ -1030,6 +1033,110 @@ function PascaContent({ profile }: { profile: any }) {
   );
 }
 
+// ==================== FEATURE ENTRY CARDS ====================
+function FeatureEntryCards({ phase }: { phase: string }) {
+  const router = useRouter();
+
+  return (
+    <>
+      <SectionTitle
+        title="Fitur Kesehatan Lainnya"
+        icon="apps-outline"
+        color={Colors.textPrimary}
+      />
+
+      {/* Clinical Records */}
+      <Card
+        onPress={() => router.push('/clinical-records')}
+        style={styles.featureEntryCard}
+      >
+        <View style={styles.featureEntryRow}>
+          <View style={[styles.featureEntryIcon, { backgroundColor: Colors.primaryBg }]}>
+            <Ionicons name="clipboard" size={28} color={Colors.primary} />
+          </View>
+          <View style={styles.featureEntryContent}>
+            <Text style={styles.featureEntryTitle}>Pemeriksaan Klinis</Text>
+            <Text style={styles.featureEntrySubtitle}>
+              Catat tekanan darah, Hb, berat badan, dan catatan dokter.
+            </Text>
+            <View style={styles.featureEntryBadges}>
+              <View style={[styles.featureBadge, { backgroundColor: Colors.successBg }]}>
+                <Text style={[styles.featureBadgeText, { color: Colors.success }]}>TD</Text>
+              </View>
+              <View style={[styles.featureBadge, { backgroundColor: Colors.warningBg }]}>
+                <Text style={[styles.featureBadgeText, { color: Colors.warning }]}>Hb</Text>
+              </View>
+              <View style={[styles.featureBadge, { backgroundColor: Colors.primaryBg }]}>
+                <Text style={[styles.featureBadgeText, { color: Colors.primary }]}>BB</Text>
+              </View>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
+        </View>
+      </Card>
+
+      {/* Immunization Dashboard */}
+      {(phase === 'pasca-melahirkan' || phase === 'hamil') && (
+        <Card
+          onPress={() => router.push('/immunization-dashboard')}
+          style={styles.featureEntryCard}
+        >
+          <View style={styles.featureEntryRow}>
+            <View style={[styles.featureEntryIcon, { backgroundColor: Colors.secondaryBg }]}>
+              <Ionicons name="shield-checkmark" size={28} color={Colors.secondary} />
+            </View>
+            <View style={styles.featureEntryContent}>
+              <Text style={styles.featureEntryTitle}>Dashboard Imunisasi</Text>
+              <Text style={styles.featureEntrySubtitle}>
+                Pantau jadwal & progress imunisasi anak. Lengkap dengan pengingat.
+              </Text>
+              <View style={styles.featureEntryBadges}>
+                <View style={[styles.featureBadge, { backgroundColor: Colors.successBg }]}>
+                  <Text style={[styles.featureBadgeText, { color: Colors.success }]}>Lengkap</Text>
+                </View>
+                <View style={[styles.featureBadge, { backgroundColor: Colors.dangerBg }]}>
+                  <Text style={[styles.featureBadgeText, { color: Colors.danger }]}>Terlewat</Text>
+                </View>
+                <View style={[styles.featureBadge, { backgroundColor: '#EBF5FB' }]}>
+                  <Text style={[styles.featureBadgeText, { color: '#3498DB' }]}>Jadwal</Text>
+                </View>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
+          </View>
+        </Card>
+      )}
+
+      {/* Export KIA Digital */}
+      <Card
+        onPress={() => router.push('/export-kia')}
+        style={styles.featureEntryCard}
+      >
+        <View style={styles.featureEntryRow}>
+          <View style={[styles.featureEntryIcon, { backgroundColor: Colors.accentBg }]}>
+            <Ionicons name="document-text" size={28} color={Colors.accentDark} />
+          </View>
+          <View style={styles.featureEntryContent}>
+            <Text style={styles.featureEntryTitle}>Export Buku KIA Digital</Text>
+            <Text style={styles.featureEntrySubtitle}>
+              Ringkasan kesehatan ibu & anak dalam format PDF. Cetak atau bagikan.
+            </Text>
+            <View style={styles.featureEntryBadges}>
+              <View style={[styles.featureBadge, { backgroundColor: Colors.accentBg }]}>
+                <Text style={[styles.featureBadgeText, { color: Colors.accentDark }]}>PDF</Text>
+              </View>
+              <View style={[styles.featureBadge, { backgroundColor: Colors.surfaceSecondary }]}>
+                <Text style={[styles.featureBadgeText, { color: Colors.textSecondary }]}>Ringkasan</Text>
+              </View>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
+        </View>
+      </Card>
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1703,6 +1810,53 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   milestoneBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
+
+  // Feature Entry Cards
+  featureEntryCard: {
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border + '60',
+  },
+  featureEntryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  featureEntryIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  featureEntryContent: {
+    flex: 1,
+  },
+  featureEntryTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  featureEntrySubtitle: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+  featureEntryBadges: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  featureBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  featureBadgeText: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
   },
