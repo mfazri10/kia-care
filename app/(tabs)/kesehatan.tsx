@@ -735,6 +735,41 @@ function GrowthChartEntry() {
   );
 }
 
+// ==================== MILESTONE TRACKER ENTRY ====================
+function MilestoneTrackerEntry() {
+  const router = useRouter();
+  return (
+    <Card
+      onPress={() => router.push('/milestone-tracker')}
+      style={styles.milestoneTrackerEntryCard}
+    >
+      <View style={styles.milestoneTrackerEntryRow}>
+        <View style={[styles.milestoneTrackerEntryIcon, { backgroundColor: '#F5F0FF' }]}>
+          <Ionicons name="ribbon-outline" size={28} color="#9B8EC4" />
+        </View>
+        <View style={styles.milestoneTrackerEntryContent}>
+          <Text style={styles.milestoneTrackerEntryTitle}>Milestone Perkembangan</Text>
+          <Text style={styles.milestoneTrackerEntrySubtitle}>
+            Pantau pencapaian motorik, bahasa, dan sosial-emosional anak sesuai usia.
+          </Text>
+          <View style={styles.milestoneTrackerBadges}>
+            <View style={[styles.milestoneBadge, { backgroundColor: '#F0FFF4' }]}>
+              <Text style={[styles.milestoneBadgeText, { color: '#5CB85C' }]}>Motorik</Text>
+            </View>
+            <View style={[styles.milestoneBadge, { backgroundColor: '#EBF5FB' }]}>
+              <Text style={[styles.milestoneBadgeText, { color: '#5B9BD5' }]}>Bahasa</Text>
+            </View>
+            <View style={[styles.milestoneBadge, { backgroundColor: '#F5F0FF' }]}>
+              <Text style={[styles.milestoneBadgeText, { color: '#9B8EC4' }]}>Sosial</Text>
+            </View>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
+      </View>
+    </Card>
+  );
+}
+
 // ==================== PASCA MELAHIRKAN ====================
 function PascaContent({ profile }: { profile: any }) {
   const [kfVisits, setKfVisits] = useState<KFVisitLocal[]>(
@@ -887,6 +922,9 @@ function PascaContent({ profile }: { profile: any }) {
         color={Colors.secondary}
       />
       <GrowthChartEntry />
+
+      {/* Milestone Tracker Entry */}
+      <MilestoneTrackerEntry />
 
       {/* Data Bayi (BB/TB) */}
       <SectionTitle
@@ -1618,6 +1656,53 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   growthChartBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
+
+  // Milestone Tracker Entry
+  milestoneTrackerEntryCard: {
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: '#9B8EC420',
+  },
+  milestoneTrackerEntryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  milestoneTrackerEntryIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  milestoneTrackerEntryContent: {
+    flex: 1,
+  },
+  milestoneTrackerEntryTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  milestoneTrackerEntrySubtitle: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+  milestoneTrackerBadges: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  milestoneBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  milestoneBadgeText: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
   },
