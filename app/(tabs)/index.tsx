@@ -334,7 +334,7 @@ export default function DashboardScreen() {
                 subtitle="Periksa gejala darurat"
                 icon="warning-outline"
                 color={Colors.danger}
-                onPress={() => router.push('/(tabs)/kesehatan')}
+                onPress={() => router.push('/red-flag')}
                 style={styles.quickActionButton}
               />
               <PrimaryButton
@@ -371,15 +371,15 @@ export default function DashboardScreen() {
                 subtitle="Tanda bahaya nifas"
                 icon="warning-outline"
                 color={Colors.danger}
-                onPress={() => router.push('/pregnancy/danger-signs')}
+                onPress={() => router.push('/red-flag')}
                 style={styles.quickActionButton}
               />
               <PrimaryButton
                 title="Tumbuh Kembang"
-                subtitle="Data bayi terbaru"
+                subtitle="Kurva pertumbuhan WHO"
                 icon="trending-up-outline"
                 color={Colors.secondary}
-                onPress={() => router.push('/(tabs)/kesehatan')}
+                onPress={() => router.push('/growth-chart')}
                 style={styles.quickActionButton}
               />
               <PrimaryButton
@@ -500,6 +500,31 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* Red Flag Emergency System Card */}
+        <SectionTitle
+          title="Deteksi Dini"
+          icon="shield-checkmark-outline"
+        />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.redFlagCard}
+          onPress={() => router.push('/red-flag')}
+        >
+          <View style={styles.redFlagLeft}>
+            <View style={styles.redFlagIconContainer}>
+              <Ionicons name="warning" size={28} color={Colors.white} />
+            </View>
+          </View>
+          <View style={styles.redFlagContent}>
+            <Text style={styles.redFlagTitle}>Cek Tanda Bahaya</Text>
+            <Text style={styles.redFlagSubtitle}>Deteksi dini risiko kehamilan & bayi</Text>
+            <View style={styles.redFlagButton}>
+              <Text style={styles.redFlagButtonText}>Mulai Pemeriksaan</Text>
+              <Ionicons name="arrow-forward" size={16} color={Colors.white} />
+            </View>
+          </View>
+        </TouchableOpacity>
+
         {/* Danger Signs Quick Access */}
         <TouchableOpacity
           activeOpacity={0.8}
@@ -602,6 +627,60 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
+  },
+
+  // Red Flag Emergency Card
+  redFlagCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.dangerLight,
+    ...Shadow.md,
+  },
+  redFlagLeft: {
+    marginRight: Spacing.lg,
+  },
+  redFlagIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: Colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.sm,
+  },
+  redFlagContent: {
+    flex: 1,
+  },
+  redFlagTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  redFlagSubtitle: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
+    lineHeight: 20,
+  },
+  redFlagButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.danger,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    alignSelf: 'flex-start',
+    gap: Spacing.sm,
+  },
+  redFlagButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.white,
   },
 
   // Danger Button

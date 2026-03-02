@@ -15,6 +15,8 @@ export default function RootLayout() {
         <Stack.Screen name="pregnancy" />
         <Stack.Screen name="postpartum" />
         <Stack.Screen name="pre-pregnancy" />
+        <Stack.Screen name="red-flag" />
+        <Stack.Screen name="growth-chart" />
       </Stack>
     </AppProvider>
   );

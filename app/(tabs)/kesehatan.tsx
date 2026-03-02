@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import { useApp } from '@/context/AppContext';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius, Shadow, phaseConfig } from '@/constants/theme';
@@ -699,6 +700,41 @@ function HamilContent({ profile }: { profile: any }) {
   );
 }
 
+// ==================== GROWTH CHART ENTRY ====================
+function GrowthChartEntry() {
+  const router = useRouter();
+  return (
+    <Card
+      onPress={() => router.push('/growth-chart')}
+      style={styles.growthChartEntryCard}
+    >
+      <View style={styles.growthChartEntryRow}>
+        <View style={[styles.growthChartEntryIcon, { backgroundColor: Colors.secondaryBg }]}>
+          <Ionicons name="analytics" size={28} color={Colors.secondary} />
+        </View>
+        <View style={styles.growthChartEntryContent}>
+          <Text style={styles.growthChartEntryTitle}>Kurva Pertumbuhan WHO</Text>
+          <Text style={styles.growthChartEntrySubtitle}>
+            Pantau tinggi & berat badan anak. Deteksi dini stunting berdasarkan standar WHO.
+          </Text>
+          <View style={styles.growthChartEntryBadges}>
+            <View style={[styles.growthChartBadge, { backgroundColor: '#F0FFF5' }]}>
+              <Text style={[styles.growthChartBadgeText, { color: '#27AE60' }]}>Normal</Text>
+            </View>
+            <View style={[styles.growthChartBadge, { backgroundColor: '#FFF8F0' }]}>
+              <Text style={[styles.growthChartBadgeText, { color: '#E67E22' }]}>Risiko</Text>
+            </View>
+            <View style={[styles.growthChartBadge, { backgroundColor: '#FFF5F5' }]}>
+              <Text style={[styles.growthChartBadgeText, { color: '#E74C3C' }]}>Stunting</Text>
+            </View>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
+      </View>
+    </Card>
+  );
+}
+
 // ==================== PASCA MELAHIRKAN ====================
 function PascaContent({ profile }: { profile: any }) {
   const [kfVisits, setKfVisits] = useState<KFVisitLocal[]>(
@@ -843,6 +879,14 @@ function PascaContent({ profile }: { profile: any }) {
           </Card>
         ))
       )}
+
+      {/* Tumbuh Kembang - WHO Growth Chart Entry */}
+      <SectionTitle
+        title="Tumbuh Kembang"
+        icon="analytics-outline"
+        color={Colors.secondary}
+      />
+      <GrowthChartEntry />
 
       {/* Data Bayi (BB/TB) */}
       <SectionTitle
@@ -1529,5 +1573,52 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: FontWeight.medium,
     color: Colors.textSecondary,
+  },
+
+  // Growth Chart Entry
+  growthChartEntryCard: {
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.secondary + '20',
+  },
+  growthChartEntryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  growthChartEntryIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  growthChartEntryContent: {
+    flex: 1,
+  },
+  growthChartEntryTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  growthChartEntrySubtitle: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+  growthChartEntryBadges: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  growthChartBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  growthChartBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
   },
 });
