@@ -18,6 +18,10 @@ const STORAGE_KEYS = {
   CALENDAR_EVENTS: '@kia_calendar_events',
   DANGER_SIGN_CHECKS: '@kia_danger_checks',
   NOTIFICATIONS: '@kia_notifications',
+  APPOINTMENTS: '@kia_appointments',
+  DAILY_SUPPLEMENTS: '@kia_daily_supplements',
+  NUTRITION_LOGS: '@kia_nutrition_logs',
+  GALLERY_ITEMS: '@kia_gallery_items',
 } as const;
 
 // Generic storage functions
@@ -106,6 +110,22 @@ export const saveDangerSignChecks = (checks: any[]) => setItem(STORAGE_KEYS.DANG
 // Notifications
 export const getNotifications = () => getItem<any[]>(STORAGE_KEYS.NOTIFICATIONS);
 export const saveNotifications = (notifications: any[]) => setItem(STORAGE_KEYS.NOTIFICATIONS, notifications);
+
+// Appointments
+export const getAppointments = () => getItem<any[]>(STORAGE_KEYS.APPOINTMENTS);
+export const saveAppointments = (appointments: any[]) => setItem(STORAGE_KEYS.APPOINTMENTS, appointments);
+
+// Daily Supplements
+export const getDailySupplements = () => getItem<any[]>(STORAGE_KEYS.DAILY_SUPPLEMENTS);
+export const saveDailySupplements = (logs: any[]) => setItem(STORAGE_KEYS.DAILY_SUPPLEMENTS, logs);
+
+// Nutrition Logs
+export const getNutritionLogs = () => getItem<any[]>(STORAGE_KEYS.NUTRITION_LOGS);
+export const saveNutritionLogs = (logs: any[]) => setItem(STORAGE_KEYS.NUTRITION_LOGS, logs);
+
+// Gallery Items
+export const getGalleryItems = () => getItem<any[]>(STORAGE_KEYS.GALLERY_ITEMS);
+export const saveGalleryItems = (items: any[]) => setItem(STORAGE_KEYS.GALLERY_ITEMS, items);
 
 // Clear all data
 export const clearAllData = async () => {

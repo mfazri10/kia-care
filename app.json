@@ -33,6 +33,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Izinkan Kia Care mengakses foto untuk galeri momen bayi Anda."
+        }
       ]
     ],
     "experiments": {

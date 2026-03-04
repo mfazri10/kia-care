@@ -17,6 +17,7 @@ import Card from '@/components/ui/Card';
 import ProgressBar from '@/components/ui/ProgressBar';
 import SectionTitle from '@/components/ui/SectionTitle';
 import PrimaryButton from '@/components/ui/PrimaryButton';
+import DailyTracker from '@/components/DailyTracker';
 import {
   getPregnancyWeek,
   getDaysUntilDue,
@@ -26,10 +27,9 @@ import {
   getTodayISO,
   getTrimester,
 } from '@/utils/date';
-import { getTTDLog, getANCVisits, getKFVisits, getBreastfeedingSessions } from '@/utils/storage';
-import type { Phase } from '@/types';
+import { getTTDLog, getANCVisits, getKFVisits, getBreastfeedingSessions, getAppointments } from '@/utils/storage';
+import type { Phase, Appointment } from '@/types';
 
-// Daily reminders data per phase
 function getDailyReminders(phase: Phase, pregnancyWeek: number): { id: string; icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string; color: string; done: boolean }[] {
   switch (phase) {
     case 'pra-hamil':
@@ -58,6 +58,22 @@ function getDailyReminders(phase: Phase, pregnancyWeek: number): { id: string; i
   }
 }
 
+function getCountdownText(daysAway: number): string {
+  if (daysAway === 0) return 'Hari ini!';
+  if (daysAway === 1) return 'Besok';
+  if (daysAway < 0) return `${Math.abs(daysAway)} hari lalu`;
+  return `${daysAway} hari lagi`;
+}
+
+function getAppointmentTypeLabel(type: string): string {
+  switch (type) {
+    case 'anc': return 'ANC';
+    case 'imunisasi': return 'Imunisasi';
+    case 'kontrol': return 'Kontrol';
+    default: return 'Janji Temu';
+  }
+}
+
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -67,16 +83,18 @@ export default function DashboardScreen() {
   const [ancCompleted, setAncCompleted] = useState(0);
   const [kfCompleted, setKfCompleted] = useState(0);
   const [todayFeedings, setTodayFeedings] = useState(0);
+  const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
   const [reminders, setReminders] = useState<{ id: string; icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string; color: string; done: boolean }[]>([]);
 
   const loadDashboardData = useCallback(async () => {
     if (!activeProfile) return;
     try {
-      const [ttdLog, ancVisits, kfVisits, sessions] = await Promise.all([
+      const [ttdLog, ancVisits, kfVisits, sessions, appointments] = await Promise.all([
         getTTDLog(),
         getANCVisits(),
         getKFVisits(),
         getBreastfeedingSessions(),
+        getAppointments(),
       ]);
 
       const profileTTD = (ttdLog || []).filter(
@@ -99,6 +117,13 @@ export default function DashboardScreen() {
         (s: any) => s.profileId === activeProfile.id && s.startTime.startsWith(today)
       );
       setTodayFeedings(todaySessions.length);
+
+      // Get next upcoming appointment
+      const nowMs = Date.now();
+      const upcomingAppointments = ((appointments || []) as Appointment[])
+        .filter((a) => a.profileId === activeProfile.id && new Date(a.dateTime).getTime() >= nowMs)
+        .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+      setNextAppointment(upcomingAppointments[0] || null);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     }
@@ -145,18 +170,15 @@ export default function DashboardScreen() {
   ];
   const dateStr = `${dayNames[today.getDay()]}, ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
 
-  // Pregnancy-specific data
   const pregnancyWeek = phase === 'hamil' && activeProfile.hpht ? getPregnancyWeek(activeProfile.hpht) : 0;
   const daysUntilDue = phase === 'hamil' && activeProfile.hpht ? getDaysUntilDue(activeProfile.hpht) : 0;
   const trimester = getTrimester(pregnancyWeek);
   const edd = phase === 'hamil' && activeProfile.hpht ? getEstimatedDueDate(activeProfile.hpht) : null;
 
-  // Postpartum-specific data
   const babyAgeText = phase === 'pasca-melahirkan' && activeProfile.babyDob
     ? getBabyAgeText(activeProfile.babyDob)
     : '';
 
-  // Status text
   const getStatusText = (): string => {
     switch (phase) {
       case 'hamil':
@@ -169,6 +191,11 @@ export default function DashboardScreen() {
         return '';
     }
   };
+
+  // Next appointment countdown
+  const appointmentDaysAway = nextAppointment
+    ? Math.ceil((new Date(nextAppointment.dateTime).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -191,6 +218,80 @@ export default function DashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={config.color} />
         }
       >
+        {/* Daily Tracker - Supplement Checklist */}
+        <SectionTitle
+          title="Tracker Harian"
+          icon="checkmark-circle-outline"
+          color="#FF8C69"
+        />
+        <DailyTracker profileId={activeProfile.id} />
+
+        {/* Upcoming Appointment Card */}
+        <SectionTitle
+          title="Janji Temu Berikutnya"
+          icon="calendar-outline"
+          actionLabel="Kelola"
+          onAction={() => router.push('/appointments')}
+        />
+        {nextAppointment ? (
+          <TouchableOpacity
+            style={styles.appointmentCard}
+            onPress={() => router.push('/appointments')}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.appointmentLeft, { backgroundColor: Colors.secondary }]}>
+              <Ionicons name="medical" size={22} color={Colors.white} />
+              <Text style={styles.appointmentDateDay}>
+                {new Date(nextAppointment.dateTime).getDate()}
+              </Text>
+              <Text style={styles.appointmentDateMonth}>
+                {months[new Date(nextAppointment.dateTime).getMonth()].substring(0, 3)}
+              </Text>
+            </View>
+            <View style={styles.appointmentContent}>
+              <View style={styles.appointmentBadge}>
+                <Text style={styles.appointmentBadgeText}>
+                  {getAppointmentTypeLabel(nextAppointment.type)}
+                </Text>
+              </View>
+              <Text style={styles.appointmentDoctor}>Dr. {nextAppointment.doctorName}</Text>
+              <Text style={styles.appointmentClinic}>
+                <Ionicons name="location-outline" size={12} color={Colors.textSecondary} /> {nextAppointment.clinicName}
+              </Text>
+              <Text style={styles.appointmentTime}>
+                <Ionicons name="time-outline" size={12} color={Colors.textSecondary} />{' '}
+                {new Date(nextAppointment.dateTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+            <View style={[
+              styles.countdownBadge,
+              appointmentDaysAway !== null && appointmentDaysAway <= 1 && { backgroundColor: Colors.dangerBg },
+            ]}>
+              <Text style={[
+                styles.countdownText,
+                appointmentDaysAway !== null && appointmentDaysAway <= 1 && { color: Colors.danger },
+              ]}>
+                {appointmentDaysAway !== null ? getCountdownText(appointmentDaysAway) : ''}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.noAppointmentCard}
+            onPress={() => router.push('/appointments')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="calendar-outline" size={32} color={Colors.secondary} />
+            <View style={{ flex: 1, marginLeft: Spacing.md }}>
+              <Text style={styles.noAppointmentTitle}>Belum ada janji temu</Text>
+              <Text style={styles.noAppointmentSub}>Tambahkan jadwal kunjungan dokter atau imunisasi</Text>
+            </View>
+            <View style={styles.addAppointmentBtn}>
+              <Ionicons name="add" size={18} color={Colors.white} />
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Profile Summary Card */}
         <Card style={[styles.profileSummaryCard, { borderLeftWidth: 4, borderLeftColor: config.color }]} variant="elevated">
           <View style={styles.profileSummaryRow}>
@@ -313,129 +414,36 @@ export default function DashboardScreen() {
         ))}
 
         {/* Quick Action Buttons */}
-        <SectionTitle
-          title="Aksi Cepat"
-          icon="flash-outline"
-        />
+        <SectionTitle title="Aksi Cepat" icon="flash-outline" />
         <View style={styles.quickActionsGrid}>
-          {/* Phase-specific quick actions */}
           {phase === 'hamil' && (
             <>
-              <PrimaryButton
-                title="Log TTD"
-                subtitle="Catat minum tablet"
-                icon="medical-outline"
-                color={Colors.accent}
-                onPress={() => router.push('/(tabs)/kesehatan')}
-                style={styles.quickActionButton}
-              />
-              <PrimaryButton
-                title="Cek Tanda Bahaya"
-                subtitle="Periksa gejala darurat"
-                icon="warning-outline"
-                color={Colors.danger}
-                onPress={() => router.push('/red-flag')}
-                style={styles.quickActionButton}
-              />
-              <PrimaryButton
-                title="Tambah Catatan"
-                subtitle="BB & Tekanan Darah"
-                icon="create-outline"
-                color={Colors.secondary}
-                onPress={() => router.push('/(tabs)/kesehatan')}
-                style={styles.quickActionButton}
-              />
-              <PrimaryButton
-                title="Jadwal ANC"
-                subtitle={`${ancCompleted}/6 kunjungan`}
-                icon="medkit-outline"
-                color={Colors.primary}
-                onPress={() => router.push('/(tabs)/kesehatan')}
-                style={styles.quickActionButton}
-              />
+              <PrimaryButton title="Log TTD" subtitle="Catat minum tablet" icon="medical-outline" color={Colors.accent} onPress={() => router.push('/(tabs)/kesehatan')} style={styles.quickActionButton} />
+              <PrimaryButton title="Cek Tanda Bahaya" subtitle="Periksa gejala darurat" icon="warning-outline" color={Colors.danger} onPress={() => router.push('/red-flag')} style={styles.quickActionButton} />
+              <PrimaryButton title="Tambah Catatan" subtitle="BB & Tekanan Darah" icon="create-outline" color={Colors.secondary} onPress={() => router.push('/(tabs)/kesehatan')} style={styles.quickActionButton} />
+              <PrimaryButton title="Jadwal ANC" subtitle={`${ancCompleted}/6 kunjungan`} icon="medkit-outline" color={Colors.primary} onPress={() => router.push('/(tabs)/kesehatan')} style={styles.quickActionButton} />
             </>
           )}
-
           {phase === 'pasca-melahirkan' && (
             <>
-              <PrimaryButton
-                title="Log Menyusui"
-                subtitle="Catat sesi hari ini"
-                icon="water-outline"
-                color={Colors.primary}
-                onPress={() => router.push('/(tabs)/kesehatan')}
-                style={styles.quickActionButton}
-              />
-              <PrimaryButton
-                title="Cek Tanda Bahaya"
-                subtitle="Tanda bahaya nifas"
-                icon="warning-outline"
-                color={Colors.danger}
-                onPress={() => router.push('/red-flag')}
-                style={styles.quickActionButton}
-              />
-              <PrimaryButton
-                title="Tumbuh Kembang"
-                subtitle="Kurva pertumbuhan WHO"
-                icon="trending-up-outline"
-                color={Colors.secondary}
-                onPress={() => router.push('/growth-chart')}
-                style={styles.quickActionButton}
-              />
-              <PrimaryButton
-                title="Jadwal KF"
-                subtitle={`${kfCompleted}/4 kunjungan`}
-                icon="medkit-outline"
-                color={Colors.pascaMelahirkan}
-                onPress={() => router.push('/(tabs)/kesehatan')}
-                style={styles.quickActionButton}
-              />
+              <PrimaryButton title="Log Menyusui" subtitle="Catat sesi hari ini" icon="water-outline" color={Colors.primary} onPress={() => router.push('/(tabs)/jurnal')} style={styles.quickActionButton} />
+              <PrimaryButton title="Cek Tanda Bahaya" subtitle="Tanda bahaya nifas" icon="warning-outline" color={Colors.danger} onPress={() => router.push('/red-flag')} style={styles.quickActionButton} />
+              <PrimaryButton title="Tumbuh Kembang" subtitle="Kurva pertumbuhan WHO" icon="trending-up-outline" color={Colors.secondary} onPress={() => router.push('/growth-chart')} style={styles.quickActionButton} />
+              <PrimaryButton title="Jadwal KF" subtitle={`${kfCompleted}/4 kunjungan`} icon="medkit-outline" color={Colors.pascaMelahirkan} onPress={() => router.push('/(tabs)/kesehatan')} style={styles.quickActionButton} />
             </>
           )}
-
           {phase === 'pra-hamil' && (
             <>
-              <PrimaryButton
-                title="Checklist Persiapan"
-                subtitle="Cek kesiapan Anda"
-                icon="checkbox-outline"
-                color={Colors.praHamil}
-                onPress={() => router.push('/(tabs)/kesehatan')}
-                style={styles.quickActionButton}
-              />
-              <PrimaryButton
-                title="Kalender Kesuburan"
-                subtitle="Hitung masa subur"
-                icon="flower-outline"
-                color={Colors.accent}
-                onPress={() => router.push('/(tabs)/kesehatan')}
-                style={styles.quickActionButton}
-              />
-              <PrimaryButton
-                title="Tambah Catatan"
-                subtitle="Catatan kesehatan"
-                icon="create-outline"
-                color={Colors.secondary}
-                onPress={() => router.push('/(tabs)/kesehatan')}
-                style={styles.quickActionButton}
-              />
-              <PrimaryButton
-                title="Edukasi"
-                subtitle="Artikel pra-hamil"
-                icon="book-outline"
-                color={Colors.primary}
-                onPress={() => router.push('/(tabs)/education')}
-                style={styles.quickActionButton}
-              />
+              <PrimaryButton title="Checklist Persiapan" subtitle="Cek kesiapan Anda" icon="checkbox-outline" color={Colors.praHamil} onPress={() => router.push('/(tabs)/kesehatan')} style={styles.quickActionButton} />
+              <PrimaryButton title="Kalender Kesuburan" subtitle="Hitung masa subur" icon="flower-outline" color={Colors.accent} onPress={() => router.push('/(tabs)/kesehatan')} style={styles.quickActionButton} />
+              <PrimaryButton title="Tambah Catatan" subtitle="Catatan kesehatan" icon="create-outline" color={Colors.secondary} onPress={() => router.push('/(tabs)/kesehatan')} style={styles.quickActionButton} />
+              <PrimaryButton title="Edukasi" subtitle="Artikel pra-hamil" icon="book-outline" color={Colors.primary} onPress={() => router.push('/(tabs)/education')} style={styles.quickActionButton} />
             </>
           )}
         </View>
 
         {/* Today's Tasks */}
-        <SectionTitle
-          title="Ringkasan Tugas"
-          icon="list-outline"
-        />
+        <SectionTitle title="Ringkasan Tugas" icon="list-outline" />
 
         {phase === 'hamil' && (
           <View style={styles.tasksGrid}>
@@ -447,7 +455,6 @@ export default function DashboardScreen() {
               <Text style={styles.taskSubtitle}>{ttdCount}/90 tablet</Text>
               <ProgressBar progress={ttdCount / 90} color={Colors.accent} height={4} />
             </Card>
-
             <Card style={styles.taskCard} onPress={() => router.push('/pregnancy/anc')}>
               <View style={[styles.taskIcon, { backgroundColor: Colors.secondaryBg }]}>
                 <Ionicons name="medkit" size={24} color={Colors.secondary} />
@@ -469,8 +476,7 @@ export default function DashboardScreen() {
               <Text style={styles.taskSubtitle}>{kfCompleted}/4 kunjungan</Text>
               <ProgressBar progress={kfCompleted / 4} color={Colors.secondary} height={4} />
             </Card>
-
-            <Card style={styles.taskCard} onPress={() => router.push('/postpartum/breastfeeding')}>
+            <Card style={styles.taskCard} onPress={() => router.push('/(tabs)/jurnal')}>
               <View style={[styles.taskIcon, { backgroundColor: Colors.primaryBg }]}>
                 <Ionicons name="water" size={24} color={Colors.primary} />
               </View>
@@ -489,7 +495,6 @@ export default function DashboardScreen() {
               <Text style={styles.taskTitle}>Checklist Persiapan</Text>
               <Text style={styles.taskSubtitle}>Persiapan sebelum hamil</Text>
             </Card>
-
             <Card style={styles.taskCard} onPress={() => router.push('/pre-pregnancy/fertility')}>
               <View style={[styles.taskIcon, { backgroundColor: Colors.accentBg }]}>
                 <Ionicons name="calendar" size={24} color={Colors.accent} />
@@ -501,15 +506,8 @@ export default function DashboardScreen() {
         )}
 
         {/* Red Flag Emergency System Card */}
-        <SectionTitle
-          title="Deteksi Dini"
-          icon="shield-checkmark-outline"
-        />
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.redFlagCard}
-          onPress={() => router.push('/red-flag')}
-        >
+        <SectionTitle title="Deteksi Dini" icon="shield-checkmark-outline" />
+        <TouchableOpacity activeOpacity={0.8} style={styles.redFlagCard} onPress={() => router.push('/red-flag')}>
           <View style={styles.redFlagLeft}>
             <View style={styles.redFlagIconContainer}>
               <Ionicons name="warning" size={28} color={Colors.white} />
@@ -525,22 +523,6 @@ export default function DashboardScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* Danger Signs Quick Access */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.dangerButton}
-          onPress={() => router.push('/pregnancy/danger-signs')}
-        >
-          <View style={styles.dangerIcon}>
-            <Ionicons name="warning" size={24} color={Colors.white} />
-          </View>
-          <View style={styles.dangerContent}>
-            <Text style={styles.dangerTitle}>Tanda Bahaya</Text>
-            <Text style={styles.dangerSubtitle}>Cek gejala darurat segera</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.danger} />
-        </TouchableOpacity>
-
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
     </View>
@@ -548,10 +530,7 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -559,16 +538,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
   },
-  greeting: {
-    fontSize: FontSize.xxl,
-    fontWeight: FontWeight.bold,
-    color: Colors.textPrimary,
-  },
-  date: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
+  greeting: { fontSize: FontSize.xxl, fontWeight: FontWeight.bold, color: Colors.textPrimary },
+  date: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
   phaseBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -577,23 +548,114 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     gap: Spacing.xs,
   },
-  phaseText: {
+  phaseText: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+  scrollContent: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.massive },
+
+  // Appointment Card
+  appointmentCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    marginBottom: Spacing.md,
+    ...Shadow.md,
+  },
+  appointmentLeft: {
+    width: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.lg,
+    gap: 2,
+  },
+  appointmentDateDay: {
+    fontSize: FontSize.xxl,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  },
+  appointmentDateMonth: {
     fontSize: FontSize.xs,
+    color: Colors.white + 'CC',
+    textTransform: 'uppercase',
+  },
+  appointmentContent: {
+    flex: 1,
+    padding: Spacing.md,
+    justifyContent: 'center',
+  },
+  appointmentBadge: {
+    backgroundColor: Colors.secondaryBg,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.xs,
+  },
+  appointmentBadgeText: {
+    fontSize: FontSize.xs,
+    color: Colors.secondaryDark,
     fontWeight: FontWeight.semibold,
   },
-  scrollContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.massive,
+  appointmentDoctor: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+  },
+  appointmentClinic: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  appointmentTime: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  countdownBadge: {
+    backgroundColor: Colors.secondaryBg,
+    paddingHorizontal: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countdownText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    color: Colors.secondary,
+    textAlign: 'center',
+  },
+
+  noAppointmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: Colors.secondaryLight,
+  },
+  noAppointmentTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+  },
+  noAppointmentSub: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  addAppointmentBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Profile Summary
-  profileSummaryCard: {
-    marginBottom: Spacing.md,
-  },
-  profileSummaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  profileSummaryCard: { marginBottom: Spacing.md },
+  profileSummaryRow: { flexDirection: 'row', alignItems: 'center' },
   profileAvatar: {
     width: 52,
     height: 52,
@@ -602,34 +664,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: Spacing.md,
   },
-  profileAvatarText: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-  },
-  profileSummaryInfo: {
-    flex: 1,
-  },
-  profileSummaryName: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
-    color: Colors.textPrimary,
-  },
-  profileSummaryStatus: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    marginTop: 2,
-  },
-  profileSummaryMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: 4,
-  },
-  metaText: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-  },
+  profileAvatarText: { fontSize: FontSize.xl, fontWeight: FontWeight.bold },
+  profileSummaryInfo: { flex: 1 },
+  profileSummaryName: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.textPrimary },
+  profileSummaryStatus: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, marginTop: 2 },
+  profileSummaryMeta: { flexDirection: 'row', gap: Spacing.md, marginTop: 4 },
+  metaText: { fontSize: FontSize.xs, color: Colors.textSecondary },
 
-  // Red Flag Emergency Card
+  // Red Flag
   redFlagCard: {
     flexDirection: 'row',
     backgroundColor: Colors.white,
@@ -640,9 +682,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.dangerLight,
     ...Shadow.md,
   },
-  redFlagLeft: {
-    marginRight: Spacing.lg,
-  },
+  redFlagLeft: { marginRight: Spacing.lg },
   redFlagIconContainer: {
     width: 56,
     height: 56,
@@ -652,21 +692,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...Shadow.sm,
   },
-  redFlagContent: {
-    flex: 1,
-  },
-  redFlagTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  redFlagSubtitle: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-    lineHeight: 20,
-  },
+  redFlagContent: { flex: 1 },
+  redFlagTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.textPrimary, marginBottom: 4 },
+  redFlagSubtitle: { fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: Spacing.md, lineHeight: 20 },
   redFlagButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -677,75 +705,16 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     gap: Spacing.sm,
   },
-  redFlagButtonText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    color: Colors.white,
-  },
-
-  // Danger Button
-  dangerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.dangerBg,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginTop: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.dangerLight,
-  },
-  dangerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: Colors.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  dangerContent: {
-    flex: 1,
-  },
-  dangerTitle: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
-    color: Colors.danger,
-  },
-  dangerSubtitle: {
-    fontSize: FontSize.sm,
-    color: Colors.danger + 'AA',
-  },
+  redFlagButtonText: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: Colors.white },
 
   // Hero Card
-  heroCard: {
-    marginBottom: Spacing.lg,
-    padding: Spacing.xl,
-  },
-  heroContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  heroLeft: {
-    flex: 1,
-  },
+  heroCard: { marginBottom: Spacing.lg, padding: Spacing.xl },
+  heroContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  heroLeft: { flex: 1 },
   heroRight: {},
-  heroLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.white + 'CC',
-    fontWeight: FontWeight.medium,
-  },
-  heroValue: {
-    fontSize: FontSize.xxxl,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-    marginVertical: Spacing.xs,
-  },
-  heroSubtext: {
-    fontSize: FontSize.sm,
-    color: Colors.white + 'BB',
-  },
+  heroLabel: { fontSize: FontSize.sm, color: Colors.white + 'CC', fontWeight: FontWeight.medium },
+  heroValue: { fontSize: FontSize.xxxl, fontWeight: FontWeight.bold, color: Colors.white, marginVertical: Spacing.xs },
+  heroSubtext: { fontSize: FontSize.sm, color: Colors.white + 'BB' },
   heroCircle: {
     width: 80,
     height: 80,
@@ -754,28 +723,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroCircleNumber: {
-    fontSize: FontSize.xxl,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-  },
-  heroCircleLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.white + 'CC',
-  },
-  heroIconContainer: {
-    marginLeft: Spacing.md,
-  },
-  heroFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  heroFooterText: {
-    fontSize: FontSize.xs,
-    color: Colors.white + 'CC',
-  },
+  heroCircleNumber: { fontSize: FontSize.xxl, fontWeight: FontWeight.bold, color: Colors.white },
+  heroCircleLabel: { fontSize: FontSize.xs, color: Colors.white + 'CC' },
+  heroIconContainer: { marginLeft: Spacing.md },
+  heroFooter: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm, gap: Spacing.xs },
+  heroFooterText: { fontSize: FontSize.xs, color: Colors.white + 'CC' },
 
   // Reminders
   reminderItem: {
@@ -787,9 +739,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     ...Shadow.sm,
   },
-  reminderItemDone: {
-    backgroundColor: Colors.successBg,
-  },
+  reminderItemDone: { backgroundColor: Colors.successBg },
   reminderCheckbox: {
     width: 22,
     height: 22,
@@ -808,69 +758,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: Spacing.md,
   },
-  reminderContent: {
-    flex: 1,
-  },
-  reminderTitle: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.medium,
-    color: Colors.textPrimary,
-  },
-  reminderTitleDone: {
-    textDecorationLine: 'line-through',
-    color: Colors.textSecondary,
-  },
-  reminderSubtitle: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
+  reminderContent: { flex: 1 },
+  reminderTitle: { fontSize: FontSize.md, fontWeight: FontWeight.medium, color: Colors.textPrimary },
+  reminderTitleDone: { textDecorationLine: 'line-through', color: Colors.textSecondary },
+  reminderSubtitle: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
 
   // Quick Actions
-  quickActionsGrid: {
-    gap: Spacing.sm,
-  },
-  quickActionButton: {
-    marginBottom: 0,
-  },
+  quickActionsGrid: { gap: Spacing.sm },
+  quickActionButton: { marginBottom: 0 },
 
   // Tasks
-  tasksGrid: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  taskCard: {
-    flex: 1,
-    padding: Spacing.md,
-  },
-  taskIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  taskTitle: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  taskSubtitle: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  menuGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  errorText: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: Spacing.huge,
-  },
+  tasksGrid: { flexDirection: 'row', gap: Spacing.md },
+  taskCard: { flex: 1, padding: Spacing.md },
+  taskIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  taskTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: Colors.textPrimary, marginBottom: 2 },
+  taskSubtitle: { fontSize: FontSize.xs, color: Colors.textSecondary, marginBottom: Spacing.sm },
+  errorText: { fontSize: FontSize.md, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.huge },
 });

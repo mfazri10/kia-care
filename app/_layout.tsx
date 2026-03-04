@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="clinical-records" />
         <Stack.Screen name="immunization-dashboard" />
         <Stack.Screen name="export-kia" />
+        <Stack.Screen name="appointments" />
       </Stack>
     </AppProvider>
   );

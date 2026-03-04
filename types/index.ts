@@ -243,3 +243,51 @@ export interface AppNotification {
   type: 'ttd' | 'anc' | 'kf' | 'menyusui' | 'imunisasi' | 'lainnya';
   read: boolean;
 }
+
+// Medical Appointment
+export interface Appointment {
+  id: string;
+  profileId: string;
+  doctorName: string;
+  clinicName: string;
+  dateTime: string; // ISO datetime
+  type: 'anc' | 'imunisasi' | 'kontrol' | 'lainnya';
+  notes?: string;
+}
+
+// Daily Supplement Log
+export interface DailySupplementLog {
+  id: string;
+  profileId: string;
+  date: string; // ISO date YYYY-MM-DD
+  ttd: boolean; // Tablet Tambah Darah
+  asamFolat: boolean; // Folic Acid
+  kalsium: boolean; // Calcium
+}
+
+// Nutrition Log
+export interface NutritionLog {
+  id: string;
+  profileId: string;
+  date: string; // ISO date
+  type: 'breastfeed' | 'bottle' | 'mpasi';
+  breastfeedSide?: 'left' | 'right';
+  breastfeedDurationMinutes?: number;
+  bottleAmountMl?: number;
+  bottleType?: 'asi' | 'formula';
+  mpasiFood?: string;
+  mpasiAllergyNote?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+// Gallery Item
+export interface GalleryItem {
+  id: string;
+  profileId: string;
+  date: string; // ISO date
+  imageUri: string; // local file URI
+  caption: string;
+  category: 'usg' | 'milestone' | 'daily' | 'other';
+  createdAt: string;
+}
