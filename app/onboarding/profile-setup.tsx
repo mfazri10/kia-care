@@ -10,9 +10,12 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@fastshot/auth';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -48,7 +51,8 @@ export default function ProfileSetupScreen() {
     mode?: string;
     profileId?: string;
   }>();
-  const { addProfile, completeOnboarding, updateProfile, profiles } = useApp();
+  const { addProfile, updateProfile, profiles } = useApp();
+  const { user } = useAuth();
 
   const isChangePhaseMode = mode === 'change-phase';
   const currentPhase: Phase = phase || 'hamil';
@@ -59,8 +63,14 @@ export default function ProfileSetupScreen() {
     ? profiles.find((p) => p.id === profileId) ?? null
     : null;
 
-  // Basic profile fields — pre-fill from existing profile in change-phase mode
-  const [name, setName] = useState(existingProfile?.name ?? '');
+  // Pre-fill name from auth user metadata if available
+  const defaultName = existingProfile?.name ?? user?.user_metadata?.full_name ?? '';
+
+  // Profile picture
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+
+  // Basic profile fields — pre-fill from existing profile or auth data
+  const [name, setName] = useState(defaultName);
   const [age, setAge] = useState(existingProfile?.age ? String(existingProfile.age) : '');
   const [weight, setWeight] = useState(
     existingProfile?.weight ? String(existingProfile.weight) : ''
@@ -212,9 +222,18 @@ export default function ProfileSetupScreen() {
         }
 
         await addProfile(profile);
-        await completeOnboarding();
 
-        router.replace('/(tabs)');
+        // Navigate to AI greeting instead of completing onboarding directly
+        router.push({
+          pathname: '/onboarding/ai-greeting',
+          params: {
+            profileName: name.trim(),
+            phase: currentPhase,
+            ...(currentPhase === 'hamil' && hpht ? { hpht: hpht.toISOString() } : {}),
+            ...(currentPhase === 'pasca-melahirkan' && babyDob ? { babyDob: babyDob.toISOString() } : {}),
+            ...(currentPhase === 'pasca-melahirkan' && babyName.trim() ? { babyName: babyName.trim() } : {}),
+          },
+        });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Terjadi kesalahan saat menyimpan profil';
@@ -259,7 +278,7 @@ export default function ProfileSetupScreen() {
             </TouchableOpacity>
           )}
           <Text style={styles.stepLabel}>
-            {isChangePhaseMode ? 'Ganti Fase' : 'Langkah 2 dari 2'}
+            {isChangePhaseMode ? 'Ganti Fase' : 'Langkah 2 dari 3'}
           </Text>
           <Text style={styles.title}>
             {isChangePhaseMode ? 'Perbarui Data Profil' : 'Lengkapi Profil'}
@@ -276,6 +295,48 @@ export default function ProfileSetupScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Profile Picture */}
+          {!isChangePhaseMode && (
+            <View style={styles.profilePictureSection}>
+              <TouchableOpacity
+                style={styles.profilePictureContainer}
+                onPress={async () => {
+                  try {
+                    const result = await ImagePicker.launchImageLibraryAsync({
+                      mediaTypes: ['images'],
+                      allowsEditing: true,
+                      aspect: [1, 1],
+                      quality: 0.7,
+                    });
+                    if (!result.canceled && result.assets[0]) {
+                      setProfilePicture(result.assets[0].uri);
+                    }
+                  } catch {
+                    Alert.alert('Error', 'Gagal memilih foto');
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                {profilePicture ? (
+                  <Image
+                    source={{ uri: profilePicture }}
+                    style={styles.profilePictureImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={[styles.profilePicturePlaceholder, { backgroundColor: config.color + '20' }]}>
+                    <Ionicons name="camera-outline" size={32} color={config.color} />
+                  </View>
+                )}
+                <View style={[styles.profilePictureEditBadge, { backgroundColor: config.color }]}>
+                  <Ionicons name="pencil" size={12} color={Colors.white} />
+                </View>
+              </TouchableOpacity>
+              <Text style={styles.profilePictureLabel}>Foto Profil</Text>
+              <Text style={styles.profilePictureHint}>Opsional - ketuk untuk menambahkan</Text>
+            </View>
+          )}
+
           {/* Basic Information */}
           <Card variant="outlined" style={styles.section}>
             <Text style={styles.sectionTitle}>Data Diri</Text>
@@ -674,5 +735,50 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     borderTopWidth: 1,
     borderTopColor: Colors.borderLight,
+  },
+  profilePictureSection: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+  },
+  profilePictureContainer: {
+    position: 'relative',
+    marginBottom: Spacing.md,
+  },
+  profilePictureImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+  },
+  profilePicturePlaceholder: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: Colors.border,
+  },
+  profilePictureEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.white,
+  },
+  profilePictureLabel: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+  },
+  profilePictureHint: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    marginTop: 2,
   },
 });

@@ -9,10 +9,12 @@ import {
   Alert,
   TextInput,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@fastshot/auth';
 import { useApp } from '@/context/AppContext';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius, phaseConfig } from '@/constants/theme';
 import Card from '@/components/ui/Card';
@@ -34,6 +36,8 @@ export default function ProfileScreen() {
     resetApp,
   } = useApp();
 
+  const { user, signOut } = useAuth();
+
   const [showPinModal, setShowPinModal] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -41,6 +45,7 @@ export default function ProfileScreen() {
   const [newProfileName, setNewProfileName] = useState('');
   const [newProfilePhase, setNewProfilePhase] = useState<Phase>('hamil');
   const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   React.useEffect(() => {
     getCloudSyncEnabled().then((val) => setCloudSyncEnabled(val || false));
@@ -144,6 +149,30 @@ export default function ProfileScreen() {
     } catch {
       Alert.alert('Error', 'Gagal menambahkan profil');
     }
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Keluar Akun',
+      'Apakah Anda yakin ingin keluar? Data lokal Anda akan tetap tersimpan di perangkat ini.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Ya, Keluar',
+          style: 'destructive',
+          onPress: async () => {
+            setIsSigningOut(true);
+            try {
+              await signOut();
+            } catch {
+              Alert.alert('Error', 'Gagal keluar. Silakan coba lagi.');
+            } finally {
+              setIsSigningOut(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleChangePhase = () => {
@@ -296,6 +325,40 @@ export default function ProfileScreen() {
           fullWidth
           style={{ marginTop: Spacing.sm }}
         />
+
+        {/* Account Section */}
+        <Text style={styles.sectionTitle}>Akun</Text>
+
+        <Card style={styles.settingsCard}>
+          <View style={styles.settingsItem}>
+            <Ionicons name="mail-outline" size={22} color={Colors.textSecondary} style={styles.settingsIcon} />
+            <View style={styles.settingsContent}>
+              <Text style={styles.settingsLabel}>Email</Text>
+              <Text style={styles.settingsValue}>{user?.email || 'Tidak tersedia'}</Text>
+            </View>
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+            </View>
+          </View>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.settingsItem}
+            onPress={handleSignOut}
+            disabled={isSigningOut}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="log-out-outline" size={22} color={Colors.danger} style={styles.settingsIcon} />
+            <View style={styles.settingsContent}>
+              <Text style={[styles.settingsLabel, { color: Colors.danger }]}>Keluar</Text>
+              <Text style={styles.settingsValue}>Keluar dari akun Anda</Text>
+            </View>
+            {isSigningOut ? (
+              <ActivityIndicator size="small" color={Colors.danger} />
+            ) : (
+              <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+            )}
+          </TouchableOpacity>
+        </Card>
 
         {/* Settings */}
         <Text style={styles.sectionTitle}>Pengaturan</Text>
@@ -799,6 +862,15 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: Spacing.md,
     marginTop: Spacing.md,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: Colors.successBg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
   },
   errorText: {
     fontSize: FontSize.md,

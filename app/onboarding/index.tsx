@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@fastshot/auth';
 import { Ionicons } from '@expo/vector-icons';
-import Button from '@/components/ui/Button';
 import {
   Colors,
   Spacing,
@@ -12,94 +12,100 @@ import {
   FontWeight,
 } from '@/constants/theme';
 
-export default function WelcomeScreen() {
+const AUTH_COLORS = {
+  peach: '#F4845F',
+  peachLight: '#FFD4C7',
+  peachBg: '#FFF5F2',
+  warmWhite: '#FFFAF8',
+};
+
+export default function OnboardingWelcome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
-  const handleGetStarted = () => {
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Bunda';
+
+  const handleContinue = () => {
     router.push('/onboarding/phase-select');
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View style={styles.topSection}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Ionicons name="heart" size={48} color={Colors.white} />
+    <View style={[styles.container, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }]}>
+      {/* Decorative background */}
+      <View style={styles.bgCircle1} />
+      <View style={styles.bgCircle2} />
+
+      <View style={styles.content}>
+        {/* Welcome icon */}
+        <View style={styles.iconContainer}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="sparkles" size={36} color={Colors.white} />
           </View>
         </View>
 
-        <Text style={styles.appName}>KIA Care</Text>
-        <Text style={styles.subtitle}>Buku KIA Digital Anda</Text>
-      </View>
-
-      <View style={styles.middleSection}>
-        <View style={styles.featureRow}>
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: Colors.praHamilBg }]}>
-              <Ionicons name="heart-outline" size={24} color={Colors.praHamil} />
-            </View>
-            <Text style={styles.featureText}>Pra Hamil</Text>
-          </View>
-
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: Colors.hamilBg }]}>
-              <Ionicons name="body-outline" size={24} color={Colors.hamil} />
-            </View>
-            <Text style={styles.featureText}>Kehamilan</Text>
-          </View>
-
-          <View style={styles.featureItem}>
-            <View style={[styles.featureIcon, { backgroundColor: Colors.pascaMelahirkanBg }]}>
-              <Ionicons name="happy-outline" size={24} color={Colors.pascaMelahirkan} />
-            </View>
-            <Text style={styles.featureText}>Pasca Lahir</Text>
-          </View>
-        </View>
-
-        <Text style={styles.description}>
-          Pantau kesehatan ibu dan bayi di setiap tahap perjalanan Anda. Dari persiapan kehamilan hingga pasca melahirkan.
+        <Text style={styles.greeting}>Halo, {userName}!</Text>
+        <Text style={styles.title}>Selamat bergabung di{'\n'}KIA Care</Text>
+        <Text style={styles.subtitle}>
+          Mari lengkapi profil Anda agar kami dapat memberikan panduan kesehatan yang tepat untuk Anda dan si kecil.
         </Text>
 
-        <View style={styles.highlights}>
-          <HighlightItem
-            icon="calendar-outline"
-            text="Jadwal pemeriksaan & pengingat"
+        {/* Steps preview */}
+        <View style={styles.stepsContainer}>
+          <StepItem
+            number="1"
+            title="Pilih Fase Anda"
+            desc="Hamil, Pasca Melahirkan, atau Pra Hamil"
+            active
           />
-          <HighlightItem
-            icon="document-text-outline"
-            text="Catatan kesehatan lengkap"
+          <StepItem
+            number="2"
+            title="Lengkapi Profil"
+            desc="Data diri dan informasi kesehatan"
           />
-          <HighlightItem
-            icon="book-outline"
-            text="Edukasi kesehatan ibu & anak"
+          <StepItem
+            number="3"
+            title="Mulai Perjalanan"
+            desc="Pantau kesehatan ibu & anak"
           />
         </View>
       </View>
 
-      <View style={styles.bottomSection}>
-        <Button
-          title="Mulai Sekarang"
-          onPress={handleGetStarted}
-          size="lg"
-          fullWidth
-          icon="arrow-forward"
-          iconPosition="right"
-        />
-
-        <Text style={styles.footerText}>
-          Bersama KIA Care, kehamilan Anda lebih terpantau
-        </Text>
-      </View>
+      {/* CTA */}
+      <TouchableOpacity
+        style={styles.continueButton}
+        onPress={handleContinue}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.continueButtonText}>Mulai Pengaturan</Text>
+        <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+      </TouchableOpacity>
     </View>
   );
 }
 
-function HighlightItem({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+function StepItem({
+  number,
+  title,
+  desc,
+  active = false,
+}: {
+  number: string;
+  title: string;
+  desc: string;
+  active?: boolean;
+}) {
   return (
-    <View style={styles.highlightItem}>
-      <Ionicons name={icon} size={20} color={Colors.secondary} />
-      <Text style={styles.highlightText}>{text}</Text>
+    <View style={styles.stepItem}>
+      <View style={[styles.stepNumber, active && styles.stepNumberActive]}>
+        <Text style={[styles.stepNumberText, active && styles.stepNumberTextActive]}>
+          {number}
+        </Text>
+      </View>
+      <View style={styles.stepContent}>
+        <Text style={[styles.stepTitle, active && styles.stepTitleActive]}>{title}</Text>
+        <Text style={styles.stepDesc}>{desc}</Text>
+      </View>
     </View>
   );
 }
@@ -107,95 +113,130 @@ function HighlightItem({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; t
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: AUTH_COLORS.warmWhite,
     paddingHorizontal: Spacing.xxl,
   },
-  topSection: {
-    alignItems: 'center',
-    paddingTop: Spacing.huge,
+  bgCircle1: {
+    position: 'absolute',
+    top: -60,
+    right: -80,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: AUTH_COLORS.peachBg,
   },
-  logoContainer: {
-    marginBottom: Spacing.xl,
+  bgCircle2: {
+    position: 'absolute',
+    bottom: 100,
+    left: -60,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: AUTH_COLORS.peachBg,
+    opacity: 0.5,
   },
-  logoCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  appName: {
-    fontSize: FontSize.hero,
-    fontWeight: FontWeight.bold,
-    color: Colors.primary,
-    letterSpacing: 1,
-  },
-  subtitle: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.medium,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-  },
-  middleSection: {
+  content: {
     flex: 1,
     justifyContent: 'center',
-    paddingVertical: Spacing.xxl,
   },
-  featureRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: Spacing.xxxl,
-  },
-  featureItem: {
-    alignItems: 'center',
-  },
-  featureIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  featureText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-    color: Colors.textSecondary,
-  },
-  description: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
+  iconContainer: {
     marginBottom: Spacing.xxl,
   },
-  highlights: {
-    gap: Spacing.md,
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: AUTH_COLORS.peach,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: AUTH_COLORS.peach,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  highlightItem: {
+  greeting: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.medium,
+    color: AUTH_COLORS.peach,
+    marginBottom: Spacing.sm,
+  },
+  title: {
+    fontSize: FontSize.xxxl,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+    lineHeight: 38,
+    marginBottom: Spacing.lg,
+  },
+  subtitle: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    lineHeight: 24,
+    marginBottom: Spacing.xxxl,
+  },
+  stepsContainer: {
+    gap: Spacing.xl,
+  },
+  stepItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  highlightText: {
-    fontSize: FontSize.md,
-    color: Colors.textPrimary,
-    fontWeight: FontWeight.medium,
-  },
-  bottomSection: {
-    paddingBottom: Spacing.xxl,
     gap: Spacing.lg,
   },
-  footerText: {
+  stepNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  stepNumberActive: {
+    backgroundColor: AUTH_COLORS.peach,
+    borderColor: AUTH_COLORS.peach,
+  },
+  stepNumberText: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.textTertiary,
+  },
+  stepNumberTextActive: {
+    color: Colors.white,
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  stepTitleActive: {
+    color: Colors.textPrimary,
+  },
+  stepDesc: {
     fontSize: FontSize.sm,
     color: Colors.textTertiary,
-    textAlign: 'center',
+  },
+  continueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: AUTH_COLORS.peach,
+    borderRadius: BorderRadius.lg,
+    height: 56,
+    gap: Spacing.sm,
+    shadowColor: AUTH_COLORS.peach,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  continueButtonText: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.semibold,
+    color: Colors.white,
   },
 });

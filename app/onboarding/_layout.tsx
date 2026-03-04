@@ -13,6 +13,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="phase-select" />
       <Stack.Screen name="profile-setup" />
+      <Stack.Screen name="ai-greeting" />
     </Stack>
   );
 }
