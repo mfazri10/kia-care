@@ -18,6 +18,7 @@ import { Colors, Spacing, FontSize, FontWeight, BorderRadius, phaseConfig } from
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Phase, UserProfile } from '@/types';
+import { getCloudSyncEnabled, saveCloudSyncEnabled } from '@/utils/storage';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -39,6 +40,11 @@ export default function ProfileScreen() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
   const [newProfilePhase, setNewProfilePhase] = useState<Phase>('hamil');
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
+
+  React.useEffect(() => {
+    getCloudSyncEnabled().then((val) => setCloudSyncEnabled(val || false));
+  }, []);
 
   if (!activeProfile) {
     return (
@@ -322,10 +328,20 @@ export default function ProfileScreen() {
 
         <Card style={styles.settingsCard}>
           <SettingsItem
-            icon="cloud-offline-outline"
-            label="Mode Offline"
-            value="Data tersimpan lokal"
-            showChevron={false}
+            icon={cloudSyncEnabled ? 'cloud-done-outline' : 'cloud-offline-outline'}
+            label="Cloud Backup & Sync"
+            value={cloudSyncEnabled ? 'Aktif - Data tersinkronisasi' : 'Nonaktif - Data lokal'}
+            onPress={async () => {
+              const newVal = !cloudSyncEnabled;
+              setCloudSyncEnabled(newVal);
+              await saveCloudSyncEnabled(newVal);
+              Alert.alert(
+                newVal ? 'Cloud Sync Aktif' : 'Cloud Sync Nonaktif',
+                newVal
+                  ? 'Data akan disinkronkan ke cloud untuk keamanan.'
+                  : 'Data hanya tersimpan lokal di perangkat Anda.'
+              );
+            }}
           />
         </Card>
 

@@ -505,6 +505,38 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* Wellness Hub Entry */}
+        <SectionTitle title="Wellness Hub" icon="leaf-outline" />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.wellnessHubCard}
+          onPress={() => router.push('/wellness-hub')}
+        >
+          <View style={styles.wellnessHubLeft}>
+            <View style={styles.wellnessHubIconWrap}>
+              <Ionicons name="leaf" size={28} color={Colors.white} />
+            </View>
+          </View>
+          <View style={styles.wellnessHubContent}>
+            <Text style={styles.wellnessHubTitle}>Wellness Hub 🌿</Text>
+            <Text style={styles.wellnessHubSubtitle}>
+              Mood tracker, olahraga, komunitas & lainnya
+            </Text>
+            <View style={styles.wellnessHubBadges}>
+              <View style={[styles.wellnessMiniBadge, { backgroundColor: Colors.lavenderBg }]}>
+                <Text style={[styles.wellnessMiniBadgeText, { color: Colors.lavender }]}>Mood</Text>
+              </View>
+              <View style={[styles.wellnessMiniBadge, { backgroundColor: Colors.mintGreenBg }]}>
+                <Text style={[styles.wellnessMiniBadgeText, { color: Colors.mintGreen }]}>Olahraga</Text>
+              </View>
+              <View style={[styles.wellnessMiniBadge, { backgroundColor: Colors.skyBlueBg }]}>
+                <Text style={[styles.wellnessMiniBadgeText, { color: Colors.skyBlue }]}>Komunitas</Text>
+              </View>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.mintGreen} />
+        </TouchableOpacity>
+
         {/* Red Flag Emergency System Card */}
         <SectionTitle title="Deteksi Dini" icon="shield-checkmark-outline" />
         <TouchableOpacity activeOpacity={0.8} style={styles.redFlagCard} onPress={() => router.push('/red-flag')}>
@@ -774,4 +806,53 @@ const styles = StyleSheet.create({
   taskTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: Colors.textPrimary, marginBottom: 2 },
   taskSubtitle: { fontSize: FontSize.xs, color: Colors.textSecondary, marginBottom: Spacing.sm },
   errorText: { fontSize: FontSize.md, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.huge },
+
+  // Wellness Hub
+  wellnessHubCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.mintGreenLight,
+    ...Shadow.md,
+  },
+  wellnessHubLeft: { marginRight: Spacing.lg },
+  wellnessHubIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: Colors.mintGreen,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.sm,
+  },
+  wellnessHubContent: { flex: 1 },
+  wellnessHubTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  wellnessHubSubtitle: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+    lineHeight: 20,
+  },
+  wellnessHubBadges: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  wellnessMiniBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  wellnessMiniBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
 });

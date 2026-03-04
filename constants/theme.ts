@@ -57,6 +57,22 @@ export const Colors = {
   textOnPrimary: '#FFFFFF',
   textOnDark: '#FFFFFF',
 
+  // Wellness Hub Colors
+  lavender: '#B8A9E8',
+  lavenderLight: '#DCD3F5',
+  lavenderDark: '#8B74D4',
+  lavenderBg: '#F3F0FC',
+
+  mintGreen: '#7BC8A4',
+  mintGreenLight: '#B8E5CF',
+  mintGreenDark: '#4FA87E',
+  mintGreenBg: '#EDF9F3',
+
+  skyBlue: '#7CB8E4',
+  skyBlueLight: '#B5D6F0',
+  skyBlueDark: '#4A92CC',
+  skyBlueBg: '#EBF4FC',
+
   // Misc
   overlay: 'rgba(0, 0, 0, 0.5)',
   shadow: 'rgba(0, 0, 0, 0.08)',

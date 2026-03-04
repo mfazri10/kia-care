@@ -22,6 +22,7 @@ export default function RootLayout() {
         <Stack.Screen name="immunization-dashboard" />
         <Stack.Screen name="export-kia" />
         <Stack.Screen name="appointments" />
+        <Stack.Screen name="wellness-hub" />
       </Stack>
     </AppProvider>
   );

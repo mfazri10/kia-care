@@ -291,3 +291,56 @@ export interface GalleryItem {
   category: 'usg' | 'milestone' | 'daily' | 'other';
   createdAt: string;
 }
+
+// Wellness Hub Types
+export type MoodType = 'amazing' | 'happy' | 'okay' | 'sad' | 'stressed';
+
+export interface MoodEntry {
+  id: string;
+  profileId: string;
+  date: string; // ISO date YYYY-MM-DD
+  mood: MoodType;
+  aiMessage?: string;
+  createdAt: string;
+}
+
+export interface HospitalBagItem {
+  id: string;
+  label: string;
+  checked: boolean;
+}
+
+export interface HospitalBagData {
+  profileId: string;
+  perlengkapanIbu: HospitalBagItem[];
+  perlengkapanBayi: HospitalBagItem[];
+  dokumenPenting: HospitalBagItem[];
+}
+
+export interface ForumPost {
+  id: string;
+  profileId: string;
+  content: string;
+  anonymous: boolean;
+  authorName: string;
+  likes: number;
+  replies: ForumReply[];
+  createdAt: string;
+}
+
+export interface ForumReply {
+  id: string;
+  profileId: string;
+  content: string;
+  anonymous: boolean;
+  authorName: string;
+  createdAt: string;
+}
+
+export interface PartnerSyncData {
+  profileId: string;
+  partnerLinked: boolean;
+  partnerName?: string;
+  syncEnabled: boolean;
+  lastSynced?: string;
+}

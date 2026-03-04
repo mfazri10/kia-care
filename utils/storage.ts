@@ -22,6 +22,11 @@ const STORAGE_KEYS = {
   DAILY_SUPPLEMENTS: '@kia_daily_supplements',
   NUTRITION_LOGS: '@kia_nutrition_logs',
   GALLERY_ITEMS: '@kia_gallery_items',
+  MOOD_ENTRIES: '@kia_mood_entries',
+  HOSPITAL_BAG: '@kia_hospital_bag',
+  FORUM_POSTS: '@kia_forum_posts',
+  PARTNER_SYNC: '@kia_partner_sync',
+  CLOUD_SYNC_ENABLED: '@kia_cloud_sync',
 } as const;
 
 // Generic storage functions
@@ -126,6 +131,26 @@ export const saveNutritionLogs = (logs: any[]) => setItem(STORAGE_KEYS.NUTRITION
 // Gallery Items
 export const getGalleryItems = () => getItem<any[]>(STORAGE_KEYS.GALLERY_ITEMS);
 export const saveGalleryItems = (items: any[]) => setItem(STORAGE_KEYS.GALLERY_ITEMS, items);
+
+// Mood Entries
+export const getMoodEntries = () => getItem<any[]>(STORAGE_KEYS.MOOD_ENTRIES);
+export const saveMoodEntries = (entries: any[]) => setItem(STORAGE_KEYS.MOOD_ENTRIES, entries);
+
+// Hospital Bag
+export const getHospitalBag = () => getItem(STORAGE_KEYS.HOSPITAL_BAG);
+export const saveHospitalBag = (data: any) => setItem(STORAGE_KEYS.HOSPITAL_BAG, data);
+
+// Forum Posts
+export const getForumPosts = () => getItem<any[]>(STORAGE_KEYS.FORUM_POSTS);
+export const saveForumPosts = (posts: any[]) => setItem(STORAGE_KEYS.FORUM_POSTS, posts);
+
+// Partner Sync
+export const getPartnerSync = () => getItem(STORAGE_KEYS.PARTNER_SYNC);
+export const savePartnerSync = (data: any) => setItem(STORAGE_KEYS.PARTNER_SYNC, data);
+
+// Cloud Sync
+export const getCloudSyncEnabled = () => getItem<boolean>(STORAGE_KEYS.CLOUD_SYNC_ENABLED);
+export const saveCloudSyncEnabled = (enabled: boolean) => setItem(STORAGE_KEYS.CLOUD_SYNC_ENABLED, enabled);
 
 // Clear all data
 export const clearAllData = async () => {
